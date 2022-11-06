@@ -1,0 +1,22 @@
+attrs:
+    Figure:
+        background_fill_color: "#2f2f2f"
+        border_fill_alpha: 0.3
+        border_fill_color: "#2f2f2f"
+        outline_line_color: "#2f2f2f"
+    Axis:
+        axis_label_text_color: "lightgray"
+        axis_line_color: "lightgray"
+        major_label_text_color: "lightgray"
+        major_label_text_font_size: "12px"
+        major_tick_line_color: "lightgray"
+        minor_tick_line_color: "lightgray"
+    Grid:
+        band_fill_color: "lightgray"
+        grid_line_color: "lightgray"
+        grid_line_dash: [6, 4]
+        grid_line_alpha: .3
+    Title:
+        text_color: "lightgray"
+        text_font_size: "18px"
+        text_font_style: "normal"

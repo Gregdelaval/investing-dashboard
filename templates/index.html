@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<style>
+		body {
+			background: #242424;
+		}
+	</style>
+	<style>
+		.bk-root .bk-tab {
+			background-color: gray;
+			width: auto;
+			color: #242424;
+			font-style: italic;
+		}
+
+		.bk-root .bk-tabs-header .bk-tab.bk-active {
+			background-color: lightgray;
+			color: #242424;
+			font-style: normal;
+			font-weight: bold;
+		}
+
+		.bk-root .bk-tabs-header .bk-tab:hover {
+			background-color: lightgray;
+		}
+	</style>
+	<style>
+		.slick-header-column {
+			background-color: lightgray !important;
+			background-image: none !important;
+		}
+	</style>
+	<meta charset="utf-8">
+	{{ bokeh_css }}
+	{{ bokeh_js }}
+</head>
+
+<body>
+	{{ plot_div|indent(8) }}
+	{{ plot_script|indent(8) }}
+</body>
+
+</html>
