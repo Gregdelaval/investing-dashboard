@@ -147,3 +147,24 @@ class BaseModels():
 			chart.tools.append(hover_tool)
 
 		return chart
+
+	def define_figure(self, **kwargs) -> plotting.Figure:
+		figure = plotting.figure(**kwargs)
+		return figure
+
+	def define_segment(
+		self,
+		line_color: str = 'black',
+		**kwargs,
+	) -> models.Segment:
+		return models.Segment(**kwargs, line_color=line_color)
+
+	def define_vbar(
+		self,
+		line_color: str = 'black',
+		**kwargs,
+	):
+		return models.VBar(
+			**kwargs,
+			line_color=line_color,
+		)

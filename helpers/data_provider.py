@@ -81,3 +81,8 @@ class DataProvier():
 		sql_query = fr'SELECT * FROM `dl_earnings`.`{financial_statements[financial_statement]}`'
 		df = self.query(sql_query=sql_query)
 		return df
+
+	def fetch_investing_instrument(self, symbol: str, granularity: str) -> pandas.DataFrame:
+		sql_query = fr'SELECT * FROM `dl_investing_instruments`.`{symbol}_{granularity}`'
+		df = self.query(sql_query=sql_query)
+		return df
