@@ -26,7 +26,7 @@ class EarningsCalendar(BaseModels, DataProvier):
 			low=1,
 			high=100,
 			step=1,
-			value=15,
+			value=25,
 		)
 
 		#Invoke all event handlers
