@@ -12,20 +12,20 @@ class MyPanels():
 		investing_chart = InvestingChart()
 
 		#Set object sizes
-		investing_chart.test_figure.width = 1600
+		investing_chart.figure.width = 1800
+		investing_chart.figure.height = 800
 
 		#Define layout of tab
-		first_column = column()
-		second_column = column(investing_chart.test_figure)
-		third_column = column()
 		layout = gridplot(
 			toolbar_location='left',
 			merge_tools=True,
 			toolbar_options=dict(logo=None),
 			children=[[
-			first_column,
-			second_column,
-			third_column,
+			column(
+			investing_chart.figure,
+			investing_chart.granularity_selector,
+			investing_chart.instrument_selector,
+			)
 			]]
 		)
 		# #Invoke classes holding objects needed for the tab

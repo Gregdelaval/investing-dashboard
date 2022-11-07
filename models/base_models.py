@@ -34,8 +34,10 @@ class BaseModels():
 		self,
 		*callbacks: Callable,
 		options: List[str],
+		sort: bool = True,
 	) -> models.Select:
-		options = sorted(options)
+		if sort:
+			options = sorted(options)
 		selector = models.Select(
 			value=options[0],
 			options=options,
@@ -124,7 +126,10 @@ class BaseModels():
 	) -> plotting.ColumnDataSource:
 		return plotting.ColumnDataSource(df)
 
-	def define_hover_tool(self, tooltips: List[Tuple[str, str]]) -> models.HoverTool:
+	def define_hover_tool(
+		self,
+		tooltips: List[Tuple[str, str]],
+	) -> models.HoverTool:
 		hover_tool = models.HoverTool(
 			name='hover_tool',
 			mode='vline',

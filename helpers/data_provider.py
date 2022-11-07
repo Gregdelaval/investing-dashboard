@@ -82,6 +82,11 @@ class DataProvier():
 		df = self.query(sql_query=sql_query)
 		return df
 
+	def fetch_symbols_mapping(self) -> pandas.DataFrame:
+		sql_query = f'SELECT * FROM `dl_investing_instruments`.`symbols_mapping`'
+		df = self.query(sql_query=sql_query)
+		return df
+
 	def fetch_investing_instrument(self, symbol: str, granularity: str) -> pandas.DataFrame:
 		sql_query = fr'SELECT * FROM `dl_investing_instruments`.`{symbol}_{granularity}`'
 		df = self.query(sql_query=sql_query)
