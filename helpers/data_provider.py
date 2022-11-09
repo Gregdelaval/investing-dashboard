@@ -91,3 +91,52 @@ class DataProvier():
 		sql_query = fr'SELECT * FROM `dl_investing_instruments`.`{symbol}_{granularity}`'
 		df = self.query(sql_query=sql_query)
 		return df
+
+	def fetch_portfolio_open_positions(self):
+		sql_query = fr'''
+		WITH open_positions as
+		(
+		SELECT
+			*
+		FROM
+			`dl_portfolio`.`gregdelaval_etoro_positions`
+		)
+		,
+		mapping as
+		(
+		SELECT
+			`instrument_id`,
+			`name`,
+			`occurred_at`
+		FROM
+			`dl_portfolio`.`gregdelaval_etoro_portfolio_activity`
+		)
+		,
+		symbols as
+		(
+		SELECT
+			*
+		from
+			`dl_investing_instruments`.`symbols_mapping`
+		)
+		SELECT DISTINCT
+		symbols.`common_name`,
+		open_positions.`open_datetime`,
+		open_positions.`open_rate`,
+		open_positions.`is_buy`,
+		open_positions.`take_profit_rate`,
+		open_positions.`stop_loss_rate`,
+		open_positions.`amount`,
+		open_positions.`leverage`,
+		mapping.`name`
+		FROM
+		open_positions
+		JOIN
+			mapping
+			on open_positions.`instrument_id` = mapping.`instrument_id`
+		JOIN
+			symbols
+			on mapping.`name` = symbols.`etoro_name`
+		'''
+		df = self.query(sql_query=sql_query)
+		return df

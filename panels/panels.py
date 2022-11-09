@@ -25,6 +25,7 @@ class MyPanels():
 			investing_chart.figure,
 			investing_chart.granularity_selector,
 			investing_chart.instrument_selector,
+			investing_chart.portfolio_checkbox_group,
 			)
 			]]
 		)

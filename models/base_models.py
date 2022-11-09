@@ -30,6 +30,19 @@ class BaseModels():
 			style={'color': color},
 		)
 
+	def checkbox_button_group(
+		self,
+		*callbacks: Callable,
+		labels: list,
+		**kwargs,
+	) -> models.CheckboxButtonGroup:
+		widget = models.CheckboxButtonGroup(
+			**kwargs,
+			labels=labels,
+		)
+		widget.on_change('active', *callbacks)
+		return widget
+
 	def selector(
 		self,
 		*callbacks: Callable,
@@ -156,6 +169,9 @@ class BaseModels():
 	def define_figure(self, **kwargs) -> plotting.Figure:
 		figure = plotting.figure(**kwargs)
 		return figure
+
+	def define_circle(self, **kwargs) -> models.Circle:
+		return models.Circle(**kwargs)
 
 	def define_segment(
 		self,
