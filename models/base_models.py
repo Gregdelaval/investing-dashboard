@@ -30,6 +30,20 @@ class BaseModels():
 			style={'color': color},
 		)
 
+	def button(
+		self,
+		*callbacks: Callable,
+		label: str,
+		**kwargs,
+	) -> models.Button:
+		widget = models.Button(
+			**kwargs,
+			label=label,
+		)
+		# print(dir(widget))
+		widget.on_click(*callbacks)
+		return widget
+
 	def checkbox_button_group(
 		self,
 		*callbacks: Callable,
@@ -42,6 +56,12 @@ class BaseModels():
 		)
 		widget.on_change('active', *callbacks)
 		return widget
+
+	def label(self, text_color: str = 'white', **kwargs) -> models.Label:
+		return models.Label(
+			text_color=text_color,
+			**kwargs,
+		)
 
 	def selector(
 		self,
@@ -166,8 +186,17 @@ class BaseModels():
 
 		return chart
 
-	def define_figure(self, **kwargs) -> plotting.Figure:
+	def define_figure(
+		self,
+		x_grid_line_color: str = None,
+		y_grid_line_color: str = None,
+		background_alpha: float = 0.5,
+		**kwargs,
+	) -> plotting.Figure:
 		figure = plotting.figure(**kwargs)
+		figure.xgrid.grid_line_color = x_grid_line_color
+		figure.ygrid.grid_line_color = y_grid_line_color
+		figure.background_fill_alpha = background_alpha
 		return figure
 
 	def define_circle(self, **kwargs) -> models.Circle:

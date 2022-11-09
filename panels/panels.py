@@ -14,7 +14,9 @@ class MyPanels():
 		#Set object sizes
 		investing_chart.figure.width = 1800
 		investing_chart.figure.height = 800
-
+		#Must inherit dimensions of plot for placement
+		investing_chart._background_label.x = investing_chart.figure.width * 0.5
+		investing_chart._background_label.y = investing_chart.figure.height * 0.85
 		#Define layout of tab
 		layout = gridplot(
 			toolbar_location='left',
@@ -26,6 +28,7 @@ class MyPanels():
 			investing_chart.granularity_selector,
 			investing_chart.instrument_selector,
 			investing_chart.portfolio_checkbox_group,
+			investing_chart.test_button,
 			)
 			]]
 		)
