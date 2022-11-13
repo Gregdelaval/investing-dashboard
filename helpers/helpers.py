@@ -1,12 +1,21 @@
 import os
 import logging
 import sys
+import shutil
 
 
 class Helpers():
 
 	def __init__(self) -> None:
 		pass
+
+	def load_variables(self, root: str) -> None:
+		os.environ['PATH_ROOT'] = root
+		os.environ['PATH_CACHE'] = root + 'cache//'
+
+	def clear_cache(self) -> None:
+		shutil.rmtree(os.getenv('PATH_CACHE'), ignore_errors=True)
+		os.makedirs(os.getenv('PATH_CACHE'), exist_ok=True)
 
 	def get_logger(self, name: str) -> logging.Logger:
 		"""Gets custom logger that does not get handlers propagatedby Bokeh's own logger.
@@ -24,6 +33,10 @@ class Helpers():
 		stream_handler.setFormatter(_CustomColoredFormatter())
 		logger.addHandler(stream_handler)
 		return logger
+
+	def file_exists(self, file: str) -> bool:
+		print(file)
+		return os.path.isfile(file)
 
 
 class _CustomColoredFormatter(logging.Formatter):

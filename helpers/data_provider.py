@@ -2,6 +2,7 @@ from .helpers import Helpers
 from sqlalchemy import create_engine
 import pandas
 import os
+import hashlib
 
 
 class DataProvier():
@@ -17,24 +18,42 @@ class DataProvier():
 	def query(
 		self,
 		sql_query: str,
+		cache: bool = True,
 	) -> pandas.DataFrame:
-		"""Fetches data from MySql DB based on provided sql query
+		"""Fetches data from MySql DB or cache based on provided sql query.
 
 		Args:
 			sql_query (str): MySql query
+			cache (bool): Stores result of provided query for future use.
+			If the query does not return a healthy response, it will not be stored to cache.
+			Defaults to True.
 
 		Returns:
 			pandas.DataFrame:
 		"""
 		sql_query = sql_query.replace('%', r'%%')
+
+		if cache:
+			cached_file_name = os.getenv('PATH_CACHE') + hashlib.sha256(str.encode(sql_query)).hexdigest()
+			if Helpers().file_exists(file=cached_file_name):
+				self.log.warning(f'Cached response exists, returning it.')
+				df = pandas.read_pickle(cached_file_name)
+				return df
+			self.log.warning(f'Cached response does not exist.')
+
 		self.log.info(f'Fetching data from MySql DB with following query:\n{sql_query}')
 		try:
 			df = pandas.read_sql_query(sql_query, con=self.engine)
 			self.log.debug('Fetched successfully')
-			return df
 		except Exception as e:
 			self.log.error(f'Failed executing following query:\n {sql_query}\nDue to:\n{repr(e)}')
 			return pandas.DataFrame
+
+		if cache:
+			self.log.debug(f'Storing response in cache.')
+			df.to_pickle(cached_file_name)
+
+		return df
 
 	def fetch_earnings_calendar(self, index: str) -> pandas.DataFrame:
 		"""Fetches earnings for passed index

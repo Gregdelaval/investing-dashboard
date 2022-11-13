@@ -40,7 +40,6 @@ class BaseModels():
 			**kwargs,
 			label=label,
 		)
-		# print(dir(widget))
 		widget.on_click(*callbacks)
 		return widget
 

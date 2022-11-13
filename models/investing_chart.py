@@ -49,7 +49,7 @@ class InvestingChart(BaseModels, DataProvier):
 			sort=False,
 		)
 		self.portfolio_checkbox_group = self.checkbox_button_group(
-			self.set_something,
+			self.set_portfolio_overlay,
 			labels=['history', 'open'],
 		)
 
@@ -111,14 +111,13 @@ class InvestingChart(BaseModels, DataProvier):
 		self.figure.on_event(events.MouseWheel, self.set_y_range_event)
 		self.figure.on_event(events.Pan, self.set_y_range_event)
 
-	def set_something(self, attrname, old, new) -> None:
-		#TODO cache results
+	def set_portfolio_overlay(self, attrname, old, new) -> None:
 		#TODO destroy glyphs on toggle
-		if 0 in self.portfolio_checkbox_group.active:
+		if 0 in self.portfolio_checkbox_group.active:  #history
 			print('history')
 		else:
 			print('no history')
-		if 1 in self.portfolio_checkbox_group.active:
+		if 1 in self.portfolio_checkbox_group.active:  #open positions
 			self.open_positions = self.fetch_portfolio_open_positions()
 			print('open')
 		else:
@@ -192,7 +191,7 @@ class InvestingChart(BaseModels, DataProvier):
 
 	def set_y_range_change(self, attrname, old, new) -> None:
 		"""Horribly uggly but due to bokeh limitations
-		can't call same function with on change or on events.
+		can't call same function with on_change and on_event.
 		Further, python doesn't support overloading of functions so...
 		"""
 		self.set_y_range()
