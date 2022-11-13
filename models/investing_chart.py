@@ -21,11 +21,6 @@ class InvestingChart(BaseModels, DataProvier):
 
 	def __init__(self) -> None:
 		super().__init__()
-		#get figure
-		self.figure = self.define_figure(
-			x_axis_type='datetime',
-			active_scroll='wheel_zoom',
-		)
 		#define controllers
 		self.test_button = self.button(self.test_func, label='test')
 		symbols_mapping = self.fetch_symbols_mapping()
@@ -53,13 +48,7 @@ class InvestingChart(BaseModels, DataProvier):
 			labels=['history', 'open'],
 		)
 
-		self.set_data_set('', '', '')
-		self.set_data_view('', '', '')
-		self.set_source('', '', '')
-		self.set_default_x_range('', '', ''),
-		self.set_y_range_change('', '', ''),
-
-		#Glyphs
+		#Define glyphs
 		self._segment = self.define_segment(
 			x0='index',
 			y0='high',
@@ -72,6 +61,7 @@ class InvestingChart(BaseModels, DataProvier):
 			top='open',
 			bottom='close',
 			fill_color='color',
+			width=0.5,
 		)
 		self._background_label = self.label(
 			text_alpha=0.1,
@@ -80,13 +70,18 @@ class InvestingChart(BaseModels, DataProvier):
 			x_units='screen',
 			y_units='screen',
 		)
-		self.set_glyphs('', '', '')
-		self.set_default_x_range('', '', '')
-		self.set_y_range()
-
-		self.figure.add_glyph(self._source, self._segment)
-		self.figure.add_glyph(self._source, self._vbar, name='ohlc')
-		self.figure.add_layout(self._background_label)
+		self.open_positions_glyph = self.define_circle(
+			fill_color='orange',
+			x='position',
+			y='open_rate',
+			size=10,
+		)
+		self.stop_loss_glyph = self.define_circle(
+			fill_color='red',
+			x='position',
+			y='stop_loss_rate',
+			size=10,
+		)
 		#TODO Add tool configurations to base model
 		hover = models.HoverTool(
 			mode='vline',
@@ -101,6 +96,28 @@ class InvestingChart(BaseModels, DataProvier):
 			('Close', '@close{,0.00}'),
 			],
 		)
+
+		self.set_data_set('', '', '')
+		self.set_data_view('', '', '')
+		self.set_source('', '', '')
+
+		#get figure
+		self.figure = self.define_figure(
+			x_axis_type='datetime',
+			active_scroll='wheel_zoom',
+		)
+
+		self.figure.add_glyph(self._source, self._segment)
+		self.figure.add_glyph(self._source, self._vbar, name='ohlc')
+		self.figure.add_layout(self._background_label)
+		self.figure.add_glyph(
+			self.open_positions_source,
+			self.open_positions_glyph,
+		)
+		self.figure.add_glyph(
+			self.open_positions_source,
+			self.stop_loss_glyph,
+		)
 		#TODO add options to choose tool configuration on runtime (example, for portfolio overlay)
 		self.figure.add_tools(
 			models.PanTool(),
@@ -110,6 +127,9 @@ class InvestingChart(BaseModels, DataProvier):
 		)
 		self.figure.on_event(events.MouseWheel, self.set_y_range_event)
 		self.figure.on_event(events.Pan, self.set_y_range_event)
+		self.set_glyphs('', '', '')
+		self.set_default_x_range('', '', '')
+		self.set_y_range()
 
 	def set_portfolio_overlay(self, attrname, old, new) -> None:
 		#TODO destroy glyphs on toggle
@@ -118,15 +138,12 @@ class InvestingChart(BaseModels, DataProvier):
 		else:
 			print('no history')
 		if 1 in self.portfolio_checkbox_group.active:  #open positions
-			self.open_positions = self.fetch_portfolio_open_positions()
 			print('open')
 		else:
 			print('no open')
 		# print(self.portfolio_checkbox_group.labels, self.portfolio_checkbox_group.active,)
 
 	def set_glyphs(self, attrname, old, new) -> None:
-		_w = 0.5
-		self._vbar.update(width=(_w))
 		self._background_label.update(
 			text=f'{self.instrument_selector.value} - {self.granularity_selector.value}'
 		)
@@ -139,13 +156,12 @@ class InvestingChart(BaseModels, DataProvier):
 			symbol=self.instrument_selector.value,
 			granularity=self.granularity_selector.value,
 		)
-		print('data set set')
+		self.open_positions_data_set = self.fetch_portfolio_open_positions()
 
 	def set_data_view(self, attrname, old, new) -> None:
 		#TODO fix datetime dtypes in portfolio prj
-		#TODO glyphs should get created and destroyed with change of widget
 		#TODO add separate event handler for portfolio glyphs
-		#TODO make portfolio glyphs scale with selected granularity
+		#TODO make portfolio glyphs scale with zoom granularity
 		#TODO make portfolio glyphs easier to read
 		self.data_view = self.data_set
 		#Order values by datetime
@@ -156,34 +172,35 @@ class InvestingChart(BaseModels, DataProvier):
 		#Define vbar color
 		self.data_view['color'] = 'red'
 		self.data_view.loc[self.data_view['change'] > 0, 'color'] = 'green'
-		#Override index
+		# reset index
 		self.data_view.reset_index(inplace=True, drop=True)
-		# print(self.data_view.head(10))
-		# print(self.data_view['datetime'].dt.strftime('%Y-%m-%d %H:%M:%S').to_dict())
-		# try:
-		# 	self.portfolio_view = self.open_positions
-		# 	self.portfolio_view = self.portfolio_view.loc[self.portfolio_view['common_name'] ==
-		# 		self.instrument_selector.value]
-		# 	self.portfolio_view['open_datetime'] = pandas.to_datetime(self.portfolio_view['open_datetime'])
-		# 	self.saus = self.column_data_source(self.portfolio_view)
-		# 	self.positions_glyph = self.define_circle(fill_color='orange', x='open_datetime', y='open_rate')
-		# 	self.sl_glyph = self.define_circle(fill_color='red', x='open_datetime', y='stop_loss_rate')
-		# 	self.figure.add_glyph(self.saus, self.positions_glyph)
-		# 	self.figure.add_glyph(self.saus, self.sl_glyph)
-		# 	_w = self.granularities[self.granularity_selector.value] / 10000
-		# 	self.positions_glyph.update(size=(_w), x='open_datetime', y='open_rate')
-		# 	self.sl_glyph.update(size=(_w), x='open_datetime', y='stop_loss_rate')
-		# except Exception as e:
-		# 	print(repr(e))
+
+		#Set data view
+		self.open_positions_view = self.open_positions_data_set
+		self.open_positions_view['open_datetime'] = pandas.to_datetime(
+			self.open_positions_view['open_datetime']
+		)
+
+		def fetch_index(_dt):  #TODO currently gives next closest match instead of bidirectional nearest
+			_index = self.data_view['datetime'].searchsorted(_dt,)
+			return _index
+
+		self.open_positions_view['position'] = self.open_positions_view['open_datetime'].apply(
+			lambda x: fetch_index(x)
+		)
+		self.open_positions_view = self.open_positions_view.loc[self.open_positions_view['common_name'] ==
+			self.instrument_selector.value]
+
+		# print(self.open_positions_view.head(10))
+		# print(self.data_view.tail(10))
 
 	def set_source(self, attrname, old, new) -> None:
 		try:
 			self._source.data.update(self.column_data_source(self.data_view).data)
-			# self._source.data = self.data_view.to_dict(orient='list')
-			print('source updated')
+			self.open_positions_source.data = self.open_positions_view.to_dict(orient='list')
 		except AttributeError:
 			self._source = self.column_data_source(self.data_view)
-			print('source created')
+			self.open_positions_source = self.column_data_source(self.open_positions_view)
 
 	def set_default_x_range(self, attrname, old, new) -> None:
 		self.figure.x_range.update(end=self.data_view.index.max() + 5)

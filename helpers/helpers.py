@@ -35,7 +35,6 @@ class Helpers():
 		return logger
 
 	def file_exists(self, file: str) -> bool:
-		print(file)
 		return os.path.isfile(file)
 
 

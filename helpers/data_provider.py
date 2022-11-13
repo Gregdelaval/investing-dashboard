@@ -36,10 +36,10 @@ class DataProvier():
 		if cache:
 			cached_file_name = os.getenv('PATH_CACHE') + hashlib.sha256(str.encode(sql_query)).hexdigest()
 			if Helpers().file_exists(file=cached_file_name):
-				self.log.warning(f'Cached response exists, returning it.')
+				self.log.debug(f'Cached response exists, returning it.')
 				df = pandas.read_pickle(cached_file_name)
 				return df
-			self.log.warning(f'Cached response does not exist.')
+			self.log.debug(f'Cached response does not exist.')
 
 		self.log.info(f'Fetching data from MySql DB with following query:\n{sql_query}')
 		try:
