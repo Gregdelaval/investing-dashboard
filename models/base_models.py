@@ -1,6 +1,7 @@
 import pandas
 from bokeh import plotting, models
 from typing import List, Dict, Callable, Tuple
+from bokeh.core.enums import MarkerType
 
 
 class BaseModels():
@@ -200,6 +201,9 @@ class BaseModels():
 
 	def define_circle(self, **kwargs) -> models.Circle:
 		return models.Circle(**kwargs)
+
+	def define_scatter(self, **kwargs) -> models.Scatter:
+		return models.Scatter(**kwargs)
 
 	def define_segment(
 		self,

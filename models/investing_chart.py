@@ -70,18 +70,38 @@ class InvestingChart(BaseModels, DataProvier):
 			x_units='screen',
 			y_units='screen',
 		)
-		self.open_positions_glyph = self.define_circle(
-			fill_color='orange',
+		self.open_positions_glyph = self.define_scatter(
 			x='position',
 			y='open_rate',
 			size=10,
+			marker='marker',
+			fill_color='turquoise',
 		)
-		self.stop_loss_glyph = self.define_circle(
-			fill_color='red',
-			x='position',
-			y='stop_loss_rate',
-			size=10,
+		self.stop_loss_glyph = self.define_segment(
+			x0='position',
+			y0='open_rate',
+			x1='position',
+			y1='stop_loss_rate',
+			line_color='red',
+			line_width=0.2,
+			line_alpha=0.3,
 		)
+		self.stop_loss_glyph_2 = self.define_segment(
+			x0='position',
+			y0='stop_loss_rate',
+			x1='position',
+			y1='stop_loss_rate',
+			line_color='red',
+			line_width=0.2,
+			line_alpha=0.3,
+		)
+
+		# self.stop_loss_glyph = self.define_circle(
+		# 	fill_color='red',
+		# 	x='position',
+		# 	y='stop_loss_rate',
+		# 	size=10,
+		# )
 		#TODO Add tool configurations to base model
 		hover = models.HoverTool(
 			mode='vline',
@@ -138,8 +158,10 @@ class InvestingChart(BaseModels, DataProvier):
 		else:
 			print('no history')
 		if 1 in self.portfolio_checkbox_group.active:  #open positions
+			self.open_positions_glyph.update(fill_alpha=1)
 			print('open')
 		else:
+			self.open_positions_glyph.destroy()
 			print('no open')
 		# print(self.portfolio_checkbox_group.labels, self.portfolio_checkbox_group.active,)
 
@@ -190,6 +212,10 @@ class InvestingChart(BaseModels, DataProvier):
 		)
 		self.open_positions_view = self.open_positions_view.loc[self.open_positions_view['common_name'] ==
 			self.instrument_selector.value]
+		self.open_positions_view = self.open_positions_view.loc[self.open_positions_view['position'] != 0]
+		self.open_positions_view['marker'] = 'triangle'
+		self.open_positions_view.loc[self.open_positions_view['is_buy'] == 0,
+			'marker'] = 'inverted_triangle'
 
 		# print(self.open_positions_view.head(10))
 		# print(self.data_view.tail(10))
