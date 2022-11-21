@@ -1,4 +1,4 @@
-from bokeh.layouts import gridplot, column
+from bokeh.layouts import gridplot, column, row
 from bokeh import models
 from ..models.company_financials import CompanyFinancials
 from ..models.earnings_calendar import EarningsCalendar
@@ -9,14 +9,11 @@ class MyPanels():
 
 	def us_panel(self):
 		#Invoke classes holding objects needed for the tab
-		investing_chart = InvestingChart()
+		investing_chart = InvestingChart(
+			chart_height=800,
+			chart_width=1800,
+		)
 
-		#Set object sizes
-		investing_chart.figure.width = 1800
-		investing_chart.figure.height = 800
-		#Must inherit dimensions of plot for placement
-		investing_chart._background_label.x = investing_chart.figure.width * 0.5
-		investing_chart._background_label.y = investing_chart.figure.height * 0.85
 		#Define layout of tab
 		layout = gridplot(
 			toolbar_location='left',
@@ -27,7 +24,11 @@ class MyPanels():
 			investing_chart.figure,
 			investing_chart.granularity_selector,
 			investing_chart.instrument_selector,
-			investing_chart.portfolio_checkbox_group,
+			row(
+			investing_chart.portfolio_open_positions_toggle,
+			investing_chart.portfolio_historical_positions_toggle
+			),
+			investing_chart.portfolio_historical_positions_toggle,
 			investing_chart.test_button,
 			)
 			]]

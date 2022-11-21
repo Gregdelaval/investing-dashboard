@@ -38,8 +38,8 @@ class BaseModels():
 		**kwargs,
 	) -> models.Button:
 		widget = models.Button(
-			**kwargs,
 			label=label,
+			**kwargs,
 		)
 		widget.on_click(*callbacks)
 		return widget
@@ -63,6 +63,9 @@ class BaseModels():
 			**kwargs,
 		)
 
+	def define_box_annotation(self, **kwargs) -> models.BoxAnnotation:
+		return models.BoxAnnotation(**kwargs)
+
 	def selector(
 		self,
 		*callbacks: Callable,
@@ -77,6 +80,21 @@ class BaseModels():
 		)
 		selector.on_change('value', *callbacks)
 		return selector
+
+	def define_toggle(
+		self,
+		*callbacks: Callable,
+		label: str,
+		button_type: str = 'light',
+		**kwargs,
+	) -> models.Toggle:
+		toggle = models.Toggle(
+			label=label,
+			button_type=button_type,
+			**kwargs,
+		)
+		toggle.on_change('active', *callbacks)
+		return toggle
 
 	def spinner(
 		self,
@@ -162,11 +180,19 @@ class BaseModels():
 	def define_hover_tool(
 		self,
 		tooltips: List[Tuple[str, str]],
+		formatters: Dict[str, str] = {},
+		names: List[str] = [],
+		mode: str = 'vline',
+		name: str = 'hover_tool',
+		**kwargs,
 	) -> models.HoverTool:
 		hover_tool = models.HoverTool(
-			name='hover_tool',
-			mode='vline',
 			tooltips=tooltips,
+			formatters=formatters,
+			names=names,
+			name=name,
+			mode=mode,
+			**kwargs,
 		)
 		return hover_tool
 
@@ -204,6 +230,9 @@ class BaseModels():
 
 	def define_scatter(self, **kwargs) -> models.Scatter:
 		return models.Scatter(**kwargs)
+
+	def define_whisker(self, **kwargs) -> models.Whisker:
+		return models.Whisker(**kwargs)
 
 	def define_segment(
 		self,

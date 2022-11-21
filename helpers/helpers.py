@@ -2,6 +2,8 @@ import os
 import logging
 import sys
 import shutil
+import pandas
+import typing
 
 
 class Helpers():
@@ -36,6 +38,51 @@ class Helpers():
 
 	def file_exists(self, file: str) -> bool:
 		return os.path.isfile(file)
+
+	def find_closest_neighbour(
+		self,
+		for_value: typing.Union[int, pandas.Timestamp],
+		in_df: pandas.DataFrame,
+		in_column: str,
+	) -> int:
+		# def find_closest_neighbour(_dt):
+		# 	#Get neighbour datetimes
+		# 	lower_dt = self.ohlc_data_view[self.ohlc_data_view['datetime'] < _dt]['datetime']
+		# 	higher_dt = self.ohlc_data_view[self.ohlc_data_view['datetime'] > _dt]['datetime']
+		# 	try:
+		# 		lower_dt_index = lower_dt.idxmax()
+		# 	except ValueError:
+		# 		lower_dt_index = 0
+		# 	try:
+		# 		higher_dt_index = higher_dt.idxmin()
+		# 	except ValueError:
+		# 		higher_dt_index = 0
+
+		# 	#Return neighbour index based on distance
+		# 	lower_dt_distance = abs(self.ohlc_data_view.iloc[lower_dt_index]['datetime'] - _dt)
+		# 	higher_dt_distance = abs(self.ohlc_data_view.iloc[higher_dt_index]['datetime'] - _dt)
+		# 	if lower_dt_distance < higher_dt_distance:
+		# 		return lower_dt_index
+		# 	return higher_dt_index
+
+		#Get neighbour datetimes
+		lower_dt = in_df[in_df[in_column] < for_value][in_column]
+		higher_dt = in_df[in_df[in_column] > for_value][in_column]
+		try:
+			lower_dt_index = lower_dt.idxmax()
+		except ValueError:
+			lower_dt_index = 0
+		try:
+			higher_dt_index = higher_dt.idxmin()
+		except ValueError:
+			higher_dt_index = 0
+
+		#Return neighbour index based on distance
+		lower_dt_distance = abs(in_df.iloc[lower_dt_index][in_column] - for_value)
+		higher_dt_distance = abs(in_df.iloc[higher_dt_index][in_column] - for_value)
+		if lower_dt_distance < higher_dt_distance:
+			return lower_dt_index
+		return higher_dt_index
 
 
 class _CustomColoredFormatter(logging.Formatter):
