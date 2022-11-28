@@ -10,27 +10,67 @@ class MyPanels():
 	def us_panel(self):
 		#Invoke classes holding objects needed for the tab
 		investing_chart = InvestingChart(
-			chart_height=800,
-			chart_width=1800,
+			chart_height=900,
+			chart_width=1600,
 		)
-
+		widgets_column_width = 300
+		widgets = column(
+			investing_chart.primary_axis_header,
+			row(
+			investing_chart.primary_instrument_selector,
+			investing_chart.primary_granularity_selector,
+			investing_chart.primary_display_type_selector,
+			),
+			investing_chart.primary_line_field_selector,
+			row(
+			investing_chart.primary_ohlc_o_field_selector,
+			investing_chart.primary_ohlc_h_field_selector,
+			investing_chart.primary_ohlc_l_field_selector,
+			investing_chart.primary_ohlc_c_field_selector,
+			),
+			row(
+			investing_chart.primary_bar_top_field_selector,
+			investing_chart.primary_bar_bottom_field_selector,
+			),
+			investing_chart.primary_axis_portfolio_descriptor,
+			row(
+			investing_chart.portfolio_open_positions_toggle,
+			investing_chart.portfolio_historical_positions_toggle,
+			),
+			investing_chart.secondary_axis_header,
+			row(
+			investing_chart.secondary_instrument_selector,
+			investing_chart.secondary_granularity_selector,
+			investing_chart.secondary_display_type_selector,
+			),
+			investing_chart.secondary_line_field_selector,
+			row(
+			investing_chart.secondary_ohlc_o_field_selector,
+			investing_chart.secondary_ohlc_h_field_selector,
+			investing_chart.secondary_ohlc_l_field_selector,
+			investing_chart.secondary_ohlc_c_field_selector,
+			),
+			row(
+			investing_chart.secondary_bar_top_field_selector,
+			investing_chart.secondary_bar_bottom_field_selector,
+			),
+			investing_chart.trigger_calculation_button,
+		)
+		for _row in widgets.children:
+			if isinstance(_row, models.Row):
+				_row_children_width = widgets_column_width / len(_row.children) - len(_row.children) * 2
+				for _row_child in _row.children:
+					_row_child.width = int(_row_children_width)
+			else:
+				_row.width = widgets_column_width
 		#Define layout of tab
 		layout = gridplot(
 			toolbar_location='left',
 			merge_tools=True,
 			toolbar_options=dict(logo=None),
 			children=[[
-			column(
-			investing_chart.figure,
-			investing_chart.granularity_selector,
-			investing_chart.instrument_selector,
-			row(
-			investing_chart.portfolio_open_positions_toggle,
-			investing_chart.portfolio_historical_positions_toggle
-			),
-			investing_chart.portfolio_historical_positions_toggle,
-			investing_chart.test_button,
-			)
+			column(widgets),
+			column(investing_chart.primary_figure, investing_chart.secondary_figure),
 			]]
 		)
 		# #Invoke classes holding objects needed for the tab
@@ -77,7 +117,7 @@ class MyPanels():
 		# )
 
 		#Return panel
-		return models.Panel(
+		return models.TabPanel(
 			child=layout,
 			title='US',
 		)

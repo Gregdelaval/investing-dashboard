@@ -1,7 +1,6 @@
 import os
 import logging
 import sys
-import shutil
 import pandas
 import typing
 
@@ -14,10 +13,6 @@ class Helpers():
 	def load_variables(self, root: str) -> None:
 		os.environ['PATH_ROOT'] = root
 		os.environ['PATH_CACHE'] = root + 'cache//'
-
-	def clear_cache(self) -> None:
-		shutil.rmtree(os.getenv('PATH_CACHE'), ignore_errors=True)
-		os.makedirs(os.getenv('PATH_CACHE'), exist_ok=True)
 
 	def get_logger(self, name: str) -> logging.Logger:
 		"""Gets custom logger that does not get handlers propagatedby Bokeh's own logger.
@@ -45,25 +40,10 @@ class Helpers():
 		in_df: pandas.DataFrame,
 		in_column: str,
 	) -> int:
-		# def find_closest_neighbour(_dt):
-		# 	#Get neighbour datetimes
-		# 	lower_dt = self.ohlc_data_view[self.ohlc_data_view['datetime'] < _dt]['datetime']
-		# 	higher_dt = self.ohlc_data_view[self.ohlc_data_view['datetime'] > _dt]['datetime']
-		# 	try:
-		# 		lower_dt_index = lower_dt.idxmax()
-		# 	except ValueError:
-		# 		lower_dt_index = 0
-		# 	try:
-		# 		higher_dt_index = higher_dt.idxmin()
-		# 	except ValueError:
-		# 		higher_dt_index = 0
-
-		# 	#Return neighbour index based on distance
-		# 	lower_dt_distance = abs(self.ohlc_data_view.iloc[lower_dt_index]['datetime'] - _dt)
-		# 	higher_dt_distance = abs(self.ohlc_data_view.iloc[higher_dt_index]['datetime'] - _dt)
-		# 	if lower_dt_distance < higher_dt_distance:
-		# 		return lower_dt_index
-		# 	return higher_dt_index
+		#Return exact match if exists
+		exact_match = in_df.loc[in_df[in_column] == for_value]
+		if len(exact_match):
+			return exact_match.index.values[0]
 
 		#Get neighbour datetimes
 		lower_dt = in_df[in_df[in_column] < for_value][in_column]

@@ -1,12 +1,32 @@
 import pandas
-from bokeh import plotting, models
-from typing import List, Dict, Callable, Tuple
-from bokeh.core.enums import MarkerType
+from bokeh import plotting, models, events
+from typing import List, Dict, Callable, Tuple, Union, Type
+from ..helpers.helpers import Helpers
+
+
+class BaseEventHandler():
+	log = Helpers().get_logger(__name__)
+
+	def __init__(self, *functions) -> None:
+		self.functions = functions
+
+	def on_event(self, event) -> None:
+		for _function in self.functions:
+			_function()
+
+	def on_change(self, attrname, old, new) -> None:
+		for _function in self.functions:
+			_function()
 
 
 class BaseModels():
 	date_format = '%Y-%m-%d'
 	date_time_format = '%Y-%m-%d %H:%M'
+	#TODO Set default colors as globals
+	primary_color = '#00eeff'
+	primary_color_faded = '#00b0bd'
+	secondary_color = '#ff8400'
+	secondary_color_faded = '#bd6100'
 
 	def __init__(self) -> None:
 		pass
@@ -18,7 +38,7 @@ class BaseModels():
 	) -> models.Div:
 		return models.Div(
 			text=f'<b>{text}</b>',
-			style={'color': color},
+			styles={'color': color},
 		)
 
 	def pretext(
@@ -28,20 +48,21 @@ class BaseModels():
 	) -> models.PreText:
 		return models.PreText(
 			text=f'{text}',
-			style={'color': color},
+			styles={'color': color},
 		)
 
 	def button(
 		self,
 		*callbacks: Callable,
 		label: str,
+		event_type: Union[str, Type[events.Event]] = events.ButtonClick,
 		**kwargs,
 	) -> models.Button:
 		widget = models.Button(
 			label=label,
 			**kwargs,
 		)
-		widget.on_click(*callbacks)
+		widget.on_event(event_type, BaseEventHandler(*callbacks).on_event)
 		return widget
 
 	def checkbox_button_group(
@@ -70,15 +91,22 @@ class BaseModels():
 		self,
 		*callbacks: Callable,
 		options: List[str],
+		value: str = False,
 		sort: bool = True,
+		styles: Dict[str, str] = {'color': 'white'},
+		**kwargs,
 	) -> models.Select:
 		if sort:
 			options = sorted(options)
+		if not value:
+			value = options[0]
 		selector = models.Select(
-			value=options[0],
+			value=value,
 			options=options,
+			styles=styles,
+			**kwargs,
 		)
-		selector.on_change('value', *callbacks)
+		selector.on_change('value', BaseEventHandler(*callbacks).on_change)
 		return selector
 
 	def define_toggle(
@@ -86,14 +114,18 @@ class BaseModels():
 		*callbacks: Callable,
 		label: str,
 		button_type: str = 'light',
+		active: bool = False,
+		styles: Dict[str, str] = {'color': 'white'},
 		**kwargs,
 	) -> models.Toggle:
 		toggle = models.Toggle(
 			label=label,
 			button_type=button_type,
+			active=active,
+			styles=styles,
 			**kwargs,
 		)
-		toggle.on_change('active', *callbacks)
+		toggle.on_change('active', BaseEventHandler(*callbacks).on_change)
 		return toggle
 
 	def spinner(
@@ -181,7 +213,7 @@ class BaseModels():
 		self,
 		tooltips: List[Tuple[str, str]],
 		formatters: Dict[str, str] = {},
-		names: List[str] = [],
+		renderers: List[models.DataRenderer] = [],
 		mode: str = 'vline',
 		name: str = 'hover_tool',
 		**kwargs,
@@ -189,7 +221,7 @@ class BaseModels():
 		hover_tool = models.HoverTool(
 			tooltips=tooltips,
 			formatters=formatters,
-			names=names,
+			renderers=renderers,
 			name=name,
 			mode=mode,
 			**kwargs,
@@ -218,7 +250,7 @@ class BaseModels():
 		y_grid_line_color: str = None,
 		background_alpha: float = 0.5,
 		**kwargs,
-	) -> plotting.Figure:
+	) -> plotting.figure:
 		figure = plotting.figure(**kwargs)
 		figure.xgrid.grid_line_color = x_grid_line_color
 		figure.ygrid.grid_line_color = y_grid_line_color
@@ -240,6 +272,13 @@ class BaseModels():
 		**kwargs,
 	) -> models.Segment:
 		return models.Segment(**kwargs, line_color=line_color)
+
+	def define_line(
+		self,
+		line_color: str = primary_color,
+		**kwargs,
+	) -> models.Line:
+		return models.Line(line_color=line_color, **kwargs)
 
 	def define_vbar(
 		self,
