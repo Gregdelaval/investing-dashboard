@@ -211,7 +211,7 @@ class BaseModels():
 
 	def define_hover_tool(
 		self,
-		tooltips: List[Tuple[str, str]],
+		tooltips: List[Tuple[str, str]] = [],
 		formatters: Dict[str, str] = {},
 		renderers: List[models.DataRenderer] = [],
 		mode: str = 'vline',
@@ -249,12 +249,16 @@ class BaseModels():
 		x_grid_line_color: str = None,
 		y_grid_line_color: str = None,
 		background_alpha: float = 0.5,
+		y_axis_formatter: Type[models.TickFormatter] = models.NumeralTickFormatter(format='0'),
+		x_axis_formatter: Type[models.TickFormatter] = models.DatetimeTickFormatter(),
 		**kwargs,
 	) -> plotting.figure:
 		figure = plotting.figure(**kwargs)
 		figure.xgrid.grid_line_color = x_grid_line_color
 		figure.ygrid.grid_line_color = y_grid_line_color
 		figure.background_fill_alpha = background_alpha
+		figure.yaxis.formatter = y_axis_formatter
+		figure.xaxis.formatter = x_axis_formatter
 		return figure
 
 	def define_circle(self, **kwargs) -> models.Circle:
