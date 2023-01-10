@@ -6,15 +6,14 @@ from typing import List, Tuple
 
 class CompanyFinancials(BaseModels, DataProvier):
 
-	def __init__(self) -> None:
+	def __init__(
+		self,
+		chart_width: int,
+		chart_height: int,
+	) -> None:
 		super().__init__()
 		#Define help texts
 		self.financials_chart_title = self.divider(text='Company Financials')
-		# self.company_selector_description = self.pretext(text='Select company.')
-		# self.financial_type_description = self.pretext(text='Select type of financials.')
-		# self.financial_kpi_description = self.pretext(text='Select KPI.')
-		# self.financial_granularity_description = self.pretext(text='Select fiscal granularity.')
-		# self.date_range_description = self.pretext(text='Select period.')
 
 		#Define widgets controllers
 		self.financial_type = self.selector(
@@ -71,10 +70,13 @@ class CompanyFinancials(BaseModels, DataProvier):
 		hover_tool = self.define_hover_tool(
 			tooltips=[('Period', '@fiscal_period'), ('Value', '@top{,0.00}')]
 		)
+		#TODO refactor to use separate components from base models
 		self.financials_chart = self.define_bar_chart(
 			x='fiscal_period',
 			source=self._source,
 			hover_tool=hover_tool,
+			chart_width=chart_width,
+			chart_height=chart_height,
 		)
 
 	def set_data_set(self, attrname, old, new) -> None:

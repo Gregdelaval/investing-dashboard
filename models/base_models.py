@@ -203,7 +203,8 @@ class BaseModels():
 		self,
 		source: plotting.ColumnDataSource,
 		columns: List[models.TableColumn],
-		height: int = 400,
+		height: int,
+		width: int,
 		autosize_mode: str = 'force_fit',
 		header_bakground_color: str = 'white',
 	) -> models.DataTable:
@@ -211,6 +212,7 @@ class BaseModels():
 			source=source,
 			columns=columns,
 			height=height,
+			width=width,
 			index_position=None,
 			autosize_mode=autosize_mode,
 			styles={'background-color': header_bakground_color},
@@ -246,11 +248,17 @@ class BaseModels():
 		self,
 		source: models.ColumnDataSource,
 		x: str,
+		chart_width: int,
+		chart_height: int,
 		width: float = 0.5,
 		hover_tool: models.HoverTool = None,
 	) -> plotting.figure:
 		x_range = source.data[x]
-		chart = plotting.figure(x_range=x_range)
+		chart = plotting.figure(
+			x_range=x_range,
+			width=chart_width,
+			height=chart_height,
+		)
 		chart.vbar(x=x, source=source, width=width)
 		chart.yaxis[0].formatter = models.NumeralTickFormatter()
 		if hover_tool:

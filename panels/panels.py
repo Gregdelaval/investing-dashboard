@@ -8,16 +8,17 @@ from ..models.investing_chart import InvestingChart
 class MyPanels():
 
 	def __init__(self) -> None:
-		self.macro_panel = self.macro_panel()
+		# self.macro_panel = self.define_macro_panel()
 		self.us_panel = self.us_panel()
 
-	def macro_panel(self):
-		#Invoke classes holding objects needed for the tab
+	def define_macro_panel(self, tab_title: str = 'Macro'):
+		#Invoke classes holding objects needed for the panel
 		investing_chart = InvestingChart(
 			chart_height=900,
 			chart_width=1600,
 		)
 
+		#Define widgets column
 		widgets = column(
 			investing_chart.primary_axis_header,
 			row(
@@ -58,7 +59,7 @@ class MyPanels():
 			),
 			investing_chart.trigger_calculation_button,
 		)
-		widgets = self.resize_widgets_column(widgets=widgets)
+		widgets = self.resize_widgets_column(widgets_column_width=300, widgets=widgets)
 
 		#Define layout of tab
 		layout = gridplot(
@@ -70,21 +71,25 @@ class MyPanels():
 			column(investing_chart.primary_figure, investing_chart.secondary_figure),
 			]]
 		)
+
 		return models.TabPanel(
 			child=layout,
-			title='Macro',
+			title=tab_title,
 		)
 
-	def us_panel(self):
-		#Invoke classes holding objects needed for the tab
-		earnings_calendar = EarningsCalendar()
-		company_financials = CompanyFinancials()
+	def us_panel(self, tab_title: str = 'US'):
+		#Invoke classes holding objects needed for the panel
+		earnings_calendar = EarningsCalendar(
+			indices=['S&P 500', 'Nasdaq 100'],
+			table_width=600,
+			table_height=600,
+		)
+		company_financials = CompanyFinancials(
+			chart_width=1000,
+			chart_height=600,
+		)
 
-		#Set object sizes
-		company_financials.financials_chart.width = 1000
-		company_financials.financials_chart.height = 600
-		earnings_calendar.table.height = 600
-
+		#Define widgets column
 		widgets = column(
 			earnings_calendar.sidebar_title,
 			row(
@@ -118,7 +123,7 @@ class MyPanels():
 		#Return panel
 		return models.TabPanel(
 			child=layout,
-			title='US',
+			title=tab_title,
 		)
 
 	def resize_widgets_column(self, widgets: column, widgets_column_width: int = 300):
