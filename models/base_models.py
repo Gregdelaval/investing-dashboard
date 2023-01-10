@@ -90,6 +90,7 @@ class BaseModels():
 	def selector(
 		self,
 		*callbacks: Callable,
+		title: str,
 		options: List[str],
 		value: str = False,
 		sort: bool = True,
@@ -104,6 +105,7 @@ class BaseModels():
 			value=value,
 			options=options,
 			styles=styles,
+			title=title,
 			**kwargs,
 		)
 		selector.on_change('value', BaseEventHandler(*callbacks).on_change)
@@ -131,16 +133,20 @@ class BaseModels():
 	def spinner(
 		self,
 		*callbacks: Callable,
+		title: str,
 		low: int,
 		high: int,
 		step: int,
 		value: int,
+		styles: Dict[str, str] = {'color': 'white'},
 	) -> models.Spinner:
 		spinner = models.Spinner(
 			low=low,
 			high=high,
 			step=step,
 			value=value,
+			title=title,
+			styles=styles,
 		)
 		spinner.on_change('value', *callbacks)
 		return spinner
@@ -148,11 +154,13 @@ class BaseModels():
 	def range_slider(
 		self,
 		*callbacks: Callable,
+		title: str,
 		start: float,
 		end: float,
 		value: Tuple[float, float],
 		step: float,
 		show_value: bool = False,
+		styles: Dict[str, str] = {'color': 'white'},
 	) -> models.Slider:
 		range_slider = models.RangeSlider(
 			start=start,
@@ -160,6 +168,8 @@ class BaseModels():
 			value=value,
 			step=step,
 			show_value=show_value,
+			title=title,
+			styles=styles,
 		)
 		range_slider.on_change('value', *callbacks)
 		return range_slider
@@ -193,13 +203,17 @@ class BaseModels():
 		self,
 		source: plotting.ColumnDataSource,
 		columns: List[models.TableColumn],
+		height: int = 400,
+		autosize_mode: str = 'force_fit',
+		header_bakground_color: str = 'white',
 	) -> models.DataTable:
 		table = models.DataTable(
 			source=source,
 			columns=columns,
-			height=400,
+			height=height,
 			index_position=None,
-			autosize_mode='fit_columns',
+			autosize_mode=autosize_mode,
+			styles={'background-color': header_bakground_color},
 		)
 		return table
 

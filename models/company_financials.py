@@ -10,11 +10,11 @@ class CompanyFinancials(BaseModels, DataProvier):
 		super().__init__()
 		#Define help texts
 		self.financials_chart_title = self.divider(text='Company Financials')
-		self.company_selector_description = self.pretext(text='Select company.')
-		self.financial_type_description = self.pretext(text='Select type of financials.')
-		self.financial_kpi_description = self.pretext(text='Select KPI.')
-		self.financial_granularity_description = self.pretext(text='Select fiscal granularity.')
-		self.date_range_description = self.pretext(text='Select period.')
+		# self.company_selector_description = self.pretext(text='Select company.')
+		# self.financial_type_description = self.pretext(text='Select type of financials.')
+		# self.financial_kpi_description = self.pretext(text='Select KPI.')
+		# self.financial_granularity_description = self.pretext(text='Select fiscal granularity.')
+		# self.date_range_description = self.pretext(text='Select period.')
 
 		#Define widgets controllers
 		self.financial_type = self.selector(
@@ -22,6 +22,7 @@ class CompanyFinancials(BaseModels, DataProvier):
 			self.set_widgets,
 			self.set_data_view,
 			self.set_source,
+			title='Select type of financials',
 			options=['Balance Sheet', 'Cash Flow', 'Income Statements'],
 		)
 		self.set_data_set('', '', '')
@@ -31,6 +32,7 @@ class CompanyFinancials(BaseModels, DataProvier):
 			self.set_widgets,
 			self.set_data_view,
 			self.set_source,
+			title='Select company',
 			options=available_companies,
 		)
 
@@ -38,6 +40,7 @@ class CompanyFinancials(BaseModels, DataProvier):
 			self.set_data_view,
 			self.set_source,
 			self.set_widgets,
+			title='Select fiscal granularity',
 			options=['Annual', 'Quarterly'],
 		)
 
@@ -46,6 +49,7 @@ class CompanyFinancials(BaseModels, DataProvier):
 			self.set_widgets,
 			self.set_data_view,
 			self.set_source,
+			title='Select KPI',
 			options=financial_kpis,
 		)
 
@@ -54,6 +58,7 @@ class CompanyFinancials(BaseModels, DataProvier):
 			self.set_data_view,
 			self.set_source,
 			self.set_widgets,
+			title='Select period',
 			start=date_range[0],
 			end=date_range[1],
 			step=1,

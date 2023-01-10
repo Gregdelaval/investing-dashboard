@@ -4,6 +4,7 @@ from ..helpers.data_provider import DataProvier
 from bokeh import models, events
 from functools import partial
 import pandas
+import numpy
 
 
 class InvestingChart(BaseModels, DataProvier):
@@ -44,6 +45,7 @@ class InvestingChart(BaseModels, DataProvier):
 		#Set chart dimensions
 		self.chart_width = chart_width
 		self.chart_height = chart_height
+		symbols_mapping = self.fetch_symbols_mapping()
 
 		#define labels
 		self.primary_axis_header = self.divider(text='Primary figure')
@@ -51,13 +53,13 @@ class InvestingChart(BaseModels, DataProvier):
 		self.secondary_axis_header = self.divider(text='Secondary figure')
 
 		#Data set controllers
-		symbols_mapping = self.fetch_symbols_mapping()
 		self.trigger_calculation_button = self.button(
 			self.set_data_set,
-			self.set_data_view,
+			self.orchestrate_data_view_setting,
 			self.set_source,
 			self.set_glyphs,
-			self.set_default_view_ranges,
+			self.set_tools,
+			partial(self.set_view_ranges, x_min=180, x_max=5),
 			label='Update',
 		)
 		self.primary_instrument_selector = self.selector(
@@ -121,60 +123,63 @@ class InvestingChart(BaseModels, DataProvier):
 			value='volume',
 			visible=False,
 		)
-		self.primary_bar_bottom_field_selector = self.selector(
-			options=self.primary_figure_data_set.columns.tolist(),
-			title='Bottom',
-			value=0,
-			visible=False,
+		self.portfolio_open_positions_toggle = self.define_toggle(
+			self.set_data_set,
+			self.orchestrate_data_view_setting,
+			self.set_source,
+			self.set_glyphs,
+			label='Open Positions',
 		)
-		self.portfolio_open_positions_toggle = self.define_toggle(label='Open Positions',)
-		self.portfolio_historical_positions_toggle = self.define_toggle(label='Historical Positions',)
+		self.portfolio_historical_positions_toggle = self.define_toggle(
+			self.set_data_set,
+			self.orchestrate_data_view_setting,
+			self.set_source,
+			self.set_glyphs,
+			label='Historical Positions',
+		)
 		#Secondary glyph controllers
+		secondary_columns = self.secondary_figure_data_set.columns.tolist()
+		secondary_columns.append('0')
 		self.secondary_display_type_selector = self.selector(
 			partial(self.set_controllers, caller='secondary_display_type_selector'),
 			title='Display Type',
 			options=self.data_display_types,
 			sort=False,
+			name='secondary_display_type_selector',
 		)
 		self.secondary_line_field_selector = self.selector(
-			options=self.secondary_figure_data_set.columns.tolist(),
+			options=secondary_columns,
 			title='Line based on field',
 			visible=False,
 		)
 		self.secondary_ohlc_o_field_selector = self.selector(
-			options=self.secondary_figure_data_set.columns.tolist(),
+			options=secondary_columns,
 			title='Open',
 			value='open',
 			visible=False,
 		)
 		self.secondary_ohlc_h_field_selector = self.selector(
-			options=self.secondary_figure_data_set.columns.tolist(),
+			options=secondary_columns,
 			title='High',
 			value='high',
 			visible=False,
 		)
 		self.secondary_ohlc_l_field_selector = self.selector(
-			options=self.secondary_figure_data_set.columns.tolist(),
+			options=secondary_columns,
 			title='Low',
 			value='low',
 			visible=False,
 		)
 		self.secondary_ohlc_c_field_selector = self.selector(
-			options=self.secondary_figure_data_set.columns.tolist(),
+			options=secondary_columns,
 			title='Close',
 			value='close',
 			visible=False,
 		)
 		self.secondary_bar_top_field_selector = self.selector(
-			options=self.secondary_figure_data_set.columns.tolist(),
+			options=secondary_columns,
 			title='Top',
 			value='volume',
-			visible=False,
-		)
-		self.secondary_bar_bottom_field_selector = self.selector(
-			options=self.secondary_figure_data_set.columns.tolist(),
-			title='Bottom',
-			value=0,
 			visible=False,
 		)
 
@@ -295,22 +300,19 @@ class InvestingChart(BaseModels, DataProvier):
 			line_color='green',
 			line_alpha=0.9,
 		)
+
 		#Tools
-		#TODO add options to choose tool configuration on runtime (example, for portfolio overlay)
-		_tools = (
+		tools = (
 			models.CrosshairTool(overlay=(models.Span(dimension="width"), models.Span(dimension="height"))),
-			models.WheelZoomTool(dimensions='width', speed=0.9),
-			self.define_hover_tool(formatters={'@datetime': 'datetime'}),
+			models.WheelZoomTool(dimensions='width', speed=0.2),
 		)
 
 		#Invoke model event handlers
-		self.set_data_view()
+		self.orchestrate_data_view_setting()
 		self.set_source()
 		self.set_controllers()
 
 		#Primary figure
-		#TODO overlay showing leverage distances
-		#TODO add option to overlay and normalize charts
 		self.primary_figure = self.define_figure(
 			output_backend="webgl",
 			x_axis_type='datetime',
@@ -318,14 +320,15 @@ class InvestingChart(BaseModels, DataProvier):
 			width=self.chart_width,
 			height=int((7 * self.chart_height) / 9),
 			y_range=(
-			self.primary_figure_data_view['close'].min(), self.primary_figure_data_view['close'].max()
+			self.primary_figure_data_view['close'].min(),
+			self.primary_figure_data_view['close'].max(),
 			),
 			x_range=(0, self.primary_figure_data_view['position'].max()),
 		)
 		self.primary_figure.add_glyph(self._primary_source, self._primary_figure_line)
 		self.primary_figure.add_glyph(self._primary_source, self._primary_vbar)
 		self.primary_figure.add_glyph(self._primary_source, self._primary_axis_ohlc_candle_line)
-		self.primary_figure.add_glyph(self._primary_source, self._primary_axis_ohlc_candle_bar) # yapf: disable
+		self.primary_candle_glyph = self.primary_figure.add_glyph(self._primary_source, self._primary_axis_ohlc_candle_bar) # yapf: disable
 		self.primary_figure.add_glyph(self._historical_positions_source, self._historical_position_connector_glyph)  # yapf: disable
 		self.primary_figure.add_glyph(self._historical_positions_source, self._historical_open_positions_glyph)# yapf: disable
 		self.primary_figure.add_glyph(self._historical_positions_source, self._historical_close_positions_glyph) # yapf: disable
@@ -335,8 +338,8 @@ class InvestingChart(BaseModels, DataProvier):
 		self.primary_figure.add_glyph(self._open_positions_source, self._take_profit_hline_glyph)
 		self.primary_figure.add_glyph(self._open_positions_source, self._take_profit_vline_glyph)
 		self.primary_figure.add_layout(self._background_label, 'center')
-		self.primary_figure.add_tools(*_tools)
-		self.primary_figure.on_event(events.MouseWheel, self.set_preferred_view_ranges)
+		self.primary_figure.add_tools(*tools, self.define_hover_tool())
+		self.primary_figure.on_event(events.MouseWheel, self.set_view_ranges)
 
 		#Secondary figure
 		self.secondary_figure = self.define_figure(
@@ -346,19 +349,77 @@ class InvestingChart(BaseModels, DataProvier):
 			width=self.chart_width,
 			height=int((2 * self.chart_height) / 9),
 			y_range=(
-			self.secondary_figure_data_view['close'].min(), self.secondary_figure_data_view['close'].max()
+			self.secondary_figure_data_view['close'].min(),
+			self.secondary_figure_data_view['close'].max(),
 			),
 			x_range=self.primary_figure.x_range,
 		)
 		self.secondary_figure.add_glyph(self._secondary_source, self._secondary_figure_line)
 		self.secondary_figure.add_glyph(self._secondary_source, self._secondary_vbar)
-		self.secondary_figure.add_glyph(self._secondary_source, self._secondary_axis_ohlc_candle_line)
+		self.secondary_candle_glyph = self.secondary_figure.add_glyph(
+			self._secondary_source, self._secondary_axis_ohlc_candle_line
+		)
 		self.secondary_figure.add_glyph(self._secondary_source, self._secondary_axis_ohlc_candle_bar)
-		self.secondary_figure.add_tools(*_tools)
+		self.secondary_figure.add_tools(*tools, self.define_hover_tool())
+		self.secondary_figure.on_event(events.MouseWheel, self.set_view_ranges)
 
 		#Invoke view event handlers
 		self.set_glyphs()
-		self.set_default_view_ranges()
+		self.set_view_ranges(x_min=180, x_max=5)
+		self.set_tools()
+
+	def set_tools(self):
+		#Set renderers
+		self.primary_figure.select_one('hover_tool').renderers = [self.primary_candle_glyph]
+		self.secondary_figure.select_one('hover_tool').renderers = [self.secondary_candle_glyph]
+
+		#Set tooltip formats
+		_datetime_format = self.granularities[self.primary_granularity_selector.value]['format']
+		self.primary_figure.select_one('hover_tool').formatters = {
+			'@datetime': 'datetime'
+		}
+		self.primary_figure.select_one('hover_tool').tooltips = [
+			('Date', '@datetime{%s}' % _datetime_format)
+		]
+		self.secondary_figure.select_one('hover_tool').formatters = {
+			'@datetime': 'datetime'
+		}
+		self.secondary_figure.select_one('hover_tool').tooltips = [
+			('Date', '@datetime{%s}' % _datetime_format)
+		]
+
+		if self.primary_display_type_selector.value == 'Line':
+			_value = self.primary_line_field_selector.value
+			self.primary_figure.select_one('hover_tool').tooltips.extend([(_value, '@%s{0.0[00]a}' % _value)]
+																																																															)
+		if self.primary_display_type_selector.value == 'Candle':
+			self.primary_figure.select_one('hover_tool').tooltips.extend([
+				('open', '@%s{0.0[00]a}' % self.primary_ohlc_o_field_selector.value),
+				('high', '@%s{0.0[00]a}' % self.primary_ohlc_h_field_selector.value),
+				('low', '@%s{0.0[00]a}' % self.primary_ohlc_l_field_selector.value),
+				('close', '@%s{0.0[00]a}' % self.primary_ohlc_c_field_selector.value),
+			])
+		if self.primary_display_type_selector.value == 'Bar':
+			_value = self.primary_bar_top_field_selector.value
+			self.primary_figure.select_one('hover_tool').tooltips.extend([(_value, '@%s{0.[00]a}' % _value)])
+
+		if self.secondary_display_type_selector.value == 'Line':
+			_value = self.secondary_line_field_selector.value
+			self.secondary_figure.select_one('hover_tool').tooltips.extend([
+				(_value, '@%s{0.0[00]a}' % _value)
+			])
+		if self.secondary_display_type_selector.value == 'Candle':
+			self.secondary_figure.select_one('hover_tool').tooltips.extend([
+				('open', '@%s{0.0[00]a}' % self.secondary_ohlc_o_field_selector.value),
+				('high', '@%s{0.0[00]a}' % self.secondary_ohlc_h_field_selector.value),
+				('low', '@%s{0.0[00]a}' % self.secondary_ohlc_l_field_selector.value),
+				('close', '@%s{0.0[00]a}' % self.secondary_ohlc_c_field_selector.value),
+			])
+		if self.secondary_display_type_selector.value == 'Bar':
+			_value = self.secondary_bar_top_field_selector.value
+			self.secondary_figure.select_one('hover_tool').tooltips.extend([
+				(_value, '@%s{0.[00]a}' % _value)
+			])
 
 	def set_controllers(
 		self,
@@ -372,7 +433,6 @@ class InvestingChart(BaseModels, DataProvier):
 			self.primary_ohlc_h_field_selector.visible = False
 			self.primary_ohlc_l_field_selector.visible = False
 			self.primary_ohlc_c_field_selector.visible = False
-			self.primary_bar_bottom_field_selector.visible = False
 			self.primary_bar_top_field_selector.visible = False
 		if caller == 'secondary_display_type_selector':
 			self.secondary_line_field_selector.visible = False
@@ -380,7 +440,6 @@ class InvestingChart(BaseModels, DataProvier):
 			self.secondary_ohlc_h_field_selector.visible = False
 			self.secondary_ohlc_l_field_selector.visible = False
 			self.secondary_ohlc_c_field_selector.visible = False
-			self.secondary_bar_bottom_field_selector.visible = False
 			self.secondary_bar_top_field_selector.visible = False
 		if self.primary_display_type_selector.value == 'Line':
 			self.primary_line_field_selector.visible = True
@@ -390,7 +449,6 @@ class InvestingChart(BaseModels, DataProvier):
 			self.primary_ohlc_l_field_selector.visible = True
 			self.primary_ohlc_c_field_selector.visible = True
 		if self.primary_display_type_selector.value == 'Bar':
-			self.primary_bar_bottom_field_selector.visible = True
 			self.primary_bar_top_field_selector.visible = True
 		if self.secondary_display_type_selector.value == 'Line':
 			self.secondary_line_field_selector.visible = True
@@ -400,7 +458,6 @@ class InvestingChart(BaseModels, DataProvier):
 			self.secondary_ohlc_l_field_selector.visible = True
 			self.secondary_ohlc_c_field_selector.visible = True
 		if self.secondary_display_type_selector.value == 'Bar':
-			self.secondary_bar_bottom_field_selector.visible = True
 			self.secondary_bar_top_field_selector.visible = True
 
 	def set_glyphs(self) -> None:
@@ -455,7 +512,7 @@ class InvestingChart(BaseModels, DataProvier):
 		if self.portfolio_historical_positions_toggle.active:
 			self._historical_open_positions_glyph.size = 10
 			self._historical_close_positions_glyph.size = 8
-			self._historical_position_connector_glyph.line_width = 0.3
+			self._historical_position_connector_glyph.line_width = 0.5
 		if self.portfolio_open_positions_toggle.active:
 			self._open_positions_glyph.size = 10
 			self._stop_loss_vline_glyph.line_width = 0.3
@@ -470,70 +527,61 @@ class InvestingChart(BaseModels, DataProvier):
 		)
 		self.secondary_figure_data_set = self.fetch_investing_instrument(
 			symbol=self.secondary_instrument_selector.value,
-			granularity=self.primary_granularity_selector.value,
+			granularity=self.secondary_granularity_selector.value,
 		)
 		self.open_positions_data_set = self.fetch_portfolio_open_positions()
 		self.historical_positions_data_set = self.fetch_portfolio_historical_positions()
 
-	def set_data_view(self) -> None:
-		self.log.info('Calculating data view')
-		#TODO fix datetime dtypes in portfolio prj
-		#TODO refactor this function to make it readable
-		###OHLC DATA VIEW###
+	def orchestrate_data_view_setting(self) -> None:
+		# Define data views
 		self.primary_figure_data_view = self.primary_figure_data_set
-		#Order values by datetime
-		self.primary_figure_data_view.sort_values(by='datetime', ascending=True, inplace=True)
-		#Define change
-		self.primary_figure_data_view['change'] = (
-			self.primary_figure_data_view['close'] - self.primary_figure_data_view['close'].shift(1)
-		) / self.primary_figure_data_view['close'].shift(1) * 100
-		#Define bar color
-		self.primary_figure_data_view['color'] = 'red'
-		_green_mask = (self.primary_figure_data_view['open'] < self.primary_figure_data_view['close'])
-		self.primary_figure_data_view.loc[_green_mask, 'color'] = 'green'
-		# reset index
-		self.primary_figure_data_view.reset_index(inplace=True, drop=True)
+		self.secondary_figure_data_view = self.secondary_figure_data_set
+		self.open_positions_view = self.open_positions_data_set
+		self.historical_positions_view = self.historical_positions_data_set
+
+		#Calculate chart views
+		self.set_chart_views()
+
+		#Calculate portfolio positions
+		if self.portfolio_open_positions_toggle.active:
+			self.set_open_positions_data_view()
+		if self.portfolio_historical_positions_toggle.active:
+			self.set_historical_positions_data_view()
+
+	def set_chart_views(self):
+		#Calculate figures
+		for view in [self.primary_figure_data_view, self.secondary_figure_data_view]:
+			view.sort_values(by='datetime', ascending=True, inplace=True)
+			view['change'] = (view['close'] - view['close'].shift(1)) / view['close'].shift(1) * 100
+			view['fluctuation'] = (view['high'] - view['low']) / view['high'] * 100
+			view['color'] = numpy.select([view['change'] > 0, view['change'] < 0], ['green', 'red'])
+			view.reset_index(inplace=True, drop=True)
 		self.primary_figure_data_view['position'] = self.primary_figure_data_view.index
 
-		###SECONDARY DATA VIEW###
-		self.secondary_figure_data_view = self.secondary_figure_data_set
-		#Order values by datetime
-		self.secondary_figure_data_view.sort_values(by='datetime', ascending=True, inplace=True)
-		#Define bar color
-		self.secondary_figure_data_view['color'] = 'red'
-		_green_mask = (self.secondary_figure_data_view['open'] < self.secondary_figure_data_view['close'])
-		self.secondary_figure_data_view.loc[_green_mask, 'color'] = 'green'
-		#Set index position
-		self.secondary_figure_data_view = pandas.merge_asof(
-			self.secondary_figure_data_view,
-			self.primary_figure_data_view,
-			on='datetime',
-			suffixes=('_drop', ''),
-			direction='nearest',
+		#Map index positions
+		self.secondary_figure_data_view = Helpers().match_closest_neighbor_index(
+			parent_df=self.primary_figure_data_view,
+			child_df=self.secondary_figure_data_view,
+			parent_merge_on='datetime',
+			child_merge_on='datetime',
 		)
-		self.secondary_figure_data_view = self.secondary_figure_data_view[
-			self.secondary_figure_data_view.columns.drop(
-			list(self.secondary_figure_data_view.filter(regex='_drop'))
-			)]
 
-		###OPEN POSITIONS DATA VIEW###
-		self.open_positions_view = self.open_positions_data_set
+	def set_open_positions_data_view(self):
+		#TODO fix datetime dtypes in portfolio prj
 		self.open_positions_view['open_datetime'] = pandas.to_datetime(
 			self.open_positions_view['open_datetime']
 		)
+
+		#Map index positions
 		self.open_positions_view.sort_values(by='open_datetime', ascending=True, inplace=True)
-		#Set index position
-		self.open_positions_view = pandas.merge_asof(
-			self.open_positions_view,
-			self.primary_figure_data_view,
-			left_on='open_datetime',
-			right_on='datetime',
-			suffixes=('_drop', ''),
-			direction='nearest',
+		self.open_positions_view = Helpers().match_closest_neighbor_index(
+			parent_df=self.primary_figure_data_view,
+			child_df=self.open_positions_view,
+			parent_merge_on='datetime',
+			child_merge_on='open_datetime',
 		)
-		self.open_positions_view = self.open_positions_view[self.open_positions_view.columns.drop(
-			list(self.open_positions_view.filter(regex='_drop'))
-		)]
+
+		#Calculate view content
 		self.open_positions_view = self.open_positions_view.loc[self.open_positions_view['common_name'] ==
 			self.primary_instrument_selector.value]
 		self.open_positions_view = self.open_positions_view.loc[self.open_positions_view['position'] != 0]
@@ -543,43 +591,38 @@ class InvestingChart(BaseModels, DataProvier):
 		self.open_positions_view['position_neg_offset'] = self.open_positions_view['position'] - 1
 		self.open_positions_view['position_pos_offset'] = self.open_positions_view['position'] + 1
 
-		###HISTORICAL POSITIONS DATA VIEW###
-		self.historical_positions_view = self.historical_positions_data_set
+	def set_historical_positions_data_view(self):
+		#TODO fix datetime dtypes in portfolio prj
 		self.historical_positions_view['open_datetime'] = pandas.to_datetime(
 			self.historical_positions_view['open_datetime']
 		)
 		self.historical_positions_view['close_datetime'] = pandas.to_datetime(
 			self.historical_positions_view['close_datetime']
 		)
-		self.historical_positions_view.sort_values(by='open_datetime', ascending=True, inplace=True)
-		self.historical_positions_view = pandas.merge_asof(
-			self.historical_positions_view,
-			self.primary_figure_data_view,
-			left_on='open_datetime',
-			right_on='datetime',
-			suffixes=('_drop', ''),
-			direction='nearest',
-		)
-		self.historical_positions_view = self.historical_positions_view[
-			self.historical_positions_view.columns.drop(
-			list(self.historical_positions_view.filter(regex='_drop'))
-			)]
-		self.historical_positions_view.rename(columns={'position': 'open_position'}, inplace=True)
-		self.historical_positions_view.sort_values(by='close_datetime', ascending=True, inplace=True)
-		self.historical_positions_view = pandas.merge_asof(
-			self.historical_positions_view,
-			self.primary_figure_data_view,
-			left_on='close_datetime',
-			right_on='datetime',
-			suffixes=('_drop', ''),
-			direction='nearest',
-		)
-		self.historical_positions_view = self.historical_positions_view[
-			self.historical_positions_view.columns.drop(
-			list(self.historical_positions_view.filter(regex='_drop'))
-			)]
-		self.historical_positions_view.rename(columns={'position': 'close_position'}, inplace=True)
 
+		#Map index positions
+		self.historical_positions_view = self.historical_positions_view.sort_values(
+			by='open_datetime', ascending=True
+		)
+		self.historical_positions_view = Helpers().match_closest_neighbor_index(
+			parent_df=self.primary_figure_data_view,
+			child_df=self.historical_positions_view,
+			parent_merge_on='datetime',
+			child_merge_on='open_datetime',
+			appended_neighbor_index_col_name='open_position',
+		)
+		self.historical_positions_view = self.historical_positions_view.sort_values(
+			by='close_datetime', ascending=True
+		)
+		self.historical_positions_view = Helpers().match_closest_neighbor_index(
+			parent_df=self.primary_figure_data_view,
+			child_df=self.historical_positions_view,
+			parent_merge_on='datetime',
+			child_merge_on='close_datetime',
+			appended_neighbor_index_col_name='close_position',
+		)
+
+		#Calculate view content
 		self.historical_positions_view = self.historical_positions_view.loc[
 			self.historical_positions_view['common_name'] == self.primary_instrument_selector.value]
 		self.historical_positions_view = self.historical_positions_view.loc[
@@ -597,7 +640,6 @@ class InvestingChart(BaseModels, DataProvier):
 			& self.historical_positions_view['is_buy'] == 1
 		)
 		self.historical_positions_view.loc[(_shorting_mask | _longing_mask), 'closing_color'] = 'green'
-		self.log.info('Calculated portfolio positions')
 
 	def set_source(self) -> None:
 		try:
@@ -611,103 +653,63 @@ class InvestingChart(BaseModels, DataProvier):
 			self._open_positions_source = self.column_data_source(self.open_positions_view)
 			self._historical_positions_source = self.column_data_source(self.historical_positions_view)
 
-	def set_default_view_ranges(self) -> None:
-		#X range defaults
-		_x_range_preferred_min = self.primary_figure_data_view['position'].max() - 180
-		_x_range_preferred_max = self.primary_figure_data_view['position'].max() + 5
+	def set_view_ranges(self, event=None, x_min: int = None, x_max: int = None) -> None:
+		#X ranges
+		if x_min:
+			_x_range_min = self.primary_figure_data_view['position'].max() - x_min
+			self.primary_figure.x_range.start = self.secondary_figure.x_range.start = _x_range_min
+		else:
+			_x_range_min = self.primary_figure.x_range.start
 
-		#Set X ranges
-		self.primary_figure.x_range.start = _x_range_preferred_min
-		self.primary_figure.x_range.end = _x_range_preferred_max
-		self.secondary_figure.x_range.start = _x_range_preferred_min
-		self.secondary_figure.x_range.end = _x_range_preferred_max
+		if x_max:
+			_x_range_max = self.primary_figure_data_view['position'].max() + x_max
+			self.primary_figure.x_range.end = self.secondary_figure.x_range.end = _x_range_max
+		else:
+			_x_range_max = self.primary_figure.x_range.end
 
-		#Fig 1 Y range defaults
-		_mask = (self.primary_figure_data_view['position'] >=_x_range_preferred_min) & (self.primary_figure_data_view['position'] <= _x_range_preferred_max)#yapf: disable
-		if self.primary_display_type_selector.value == 'Candle':
-			_y_min = self.primary_figure_data_view.loc[_mask][self.primary_ohlc_l_field_selector.value].min() #yapf: disable
-			_y_max = self.primary_figure_data_view.loc[_mask][self.primary_ohlc_h_field_selector.value].max() #yapf: disable
-		if self.primary_display_type_selector.value == 'Line':
-			_y_min = self.primary_figure_data_view.loc[_mask][self.primary_line_field_selector.value].min() #yapf: disable
-			_y_max = self.primary_figure_data_view.loc[_mask][self.primary_line_field_selector.value].max() #yapf: disable
-		if self.primary_display_type_selector.value == 'Bar':
-			_y_min = self.primary_figure_data_view.loc[_mask][self.primary_bar_bottom_field_selector.value].min() #yapf: disable
-			_y_max = self.primary_figure_data_view.loc[_mask][self.primary_bar_top_field_selector.value].max() #yapf: disable
-		_primary_y_range_preferred_min = _y_min - (_y_max - _y_min) * 0.03
-		_primary_y_range_preferred_max = _y_max + (_y_max - _y_min) * 0.03
+		#y ranges
+		self.primary_figure.y_range.start, self.primary_figure.y_range.end = calculate_y_range(
+			display_type_selector=self.primary_display_type_selector,
+			ohlc_l_selector=self.primary_ohlc_l_field_selector,
+			ohlc_h_selector=self.primary_ohlc_h_field_selector,
+			line_field_selector=self.primary_line_field_selector,
+			bar_top_field_selector=self.primary_bar_top_field_selector,
+			data_view=self.primary_figure_data_view,
+			x_min=_x_range_min,
+			x_max=_x_range_max,
+		)
+		self.secondary_figure.y_range.start, self.secondary_figure.y_range.end = calculate_y_range(
+			self.secondary_display_type_selector,
+			self.secondary_ohlc_l_field_selector,
+			self.secondary_ohlc_h_field_selector,
+			self.secondary_line_field_selector,
+			self.secondary_bar_top_field_selector,
+			self.secondary_figure_data_view,
+			_x_range_min,
+			_x_range_max,
+		)
 
-		#Fig 2 Y range defaults
-		_mask = (self.secondary_figure_data_view['position'] >= _x_range_preferred_min) & (self.secondary_figure_data_view['position'] <= _x_range_preferred_max)#yapf: disable
-		if self.secondary_display_type_selector.value == 'Candle':
-			_y_min = self.secondary_figure_data_view.loc[_mask][self.secondary_ohlc_l_field_selector.value].min() #yapf: disable
-			_y_max = self.secondary_figure_data_view.loc[_mask][self.secondary_ohlc_h_field_selector.value].max() #yapf: disable
-		if self.secondary_display_type_selector.value == 'Line':
-			_y_min = self.secondary_figure_data_view.loc[_mask][self.secondary_line_field_selector.value].min() #yapf: disable
-			_y_max = self.secondary_figure_data_view.loc[_mask][self.secondary_line_field_selector.value].max() #yapf: disable
-		if self.secondary_display_type_selector.value == 'Bar':
-			_y_min = self.secondary_figure_data_view.loc[_mask][self.secondary_bar_bottom_field_selector.value].min() #yapf: disable
-			_y_max = self.secondary_figure_data_view.loc[_mask][self.secondary_bar_top_field_selector.value].max() #yapf: disable
-		_secondary_y_range_preferred_min = _y_min - (_y_max - _y_min) * 0.03
-		_secondary_y_range_preferred_max = _y_max + (_y_max - _y_min) * 0.03
 
-		#Set Y ranges
-		self.primary_figure.y_range.start = _primary_y_range_preferred_min
-		self.primary_figure.y_range.end = _primary_y_range_preferred_max
-		self.secondary_figure.y_range.start = _secondary_y_range_preferred_min
-		self.secondary_figure.y_range.end = _secondary_y_range_preferred_max
-
-	def set_preferred_view_ranges(self, event) -> None:
-		#X range preferences
-		_x_range_max = self.primary_figure_data_view['position'].max() + 5
-		_x_range_min = self.primary_figure_data_view['position'].min() - 5
-
-		#Set X range
-		if self.primary_figure.x_range.start < _x_range_min:
-			self.primary_figure.x_range.start = _x_range_min
-
-		if self.primary_figure.x_range.end > _x_range_max:
-			self.primary_figure.x_range.end = _x_range_max
-
-		#Y range preferences
-		_mask = (self.primary_figure_data_view['position'] >= self.primary_figure.x_range.start) & \
-    (self.primary_figure_data_view['position'] <= self.primary_figure.x_range.end)
-		if self.primary_display_type_selector.value == 'Candle':
-			_y_min = self.primary_figure_data_view.loc[_mask][self.primary_ohlc_l_field_selector.value].min() #yapf: disable
-			_y_max = self.primary_figure_data_view.loc[_mask][self.primary_ohlc_h_field_selector.value].max() #yapf: disable
-		if self.primary_display_type_selector.value == 'Line':
-			_y_min = self.primary_figure_data_view.loc[_mask][self.primary_line_field_selector.value].min() #yapf: disable
-			_y_max = self.primary_figure_data_view.loc[_mask][self.primary_line_field_selector.value].max() #yapf: disable
-		if self.primary_display_type_selector.value == 'Bar':
-			_y_min = self.primary_figure_data_view.loc[_mask][self.primary_bar_bottom_field_selector.value].min() #yapf: disable
-			_y_max = self.primary_figure_data_view.loc[_mask][self.primary_bar_top_field_selector.value].max() #yapf: disable
-		_primary_y_range_preferred_min = _y_min - (_y_max - _y_min) * 0.03
-		_primary_y_range_preferred_max = _y_max + (_y_max - _y_min) * 0.03
-
-		_mask = (self.secondary_figure_data_view['position'] >= self.primary_figure.x_range.start) & \
-    (self.secondary_figure_data_view['position'] <= self.primary_figure.x_range.end)
-		if self.secondary_display_type_selector.value == 'Candle':
-			_y_min = self.secondary_figure_data_view.loc[_mask][self.secondary_ohlc_l_field_selector.value].min() #yapf: disable
-			_y_max = self.secondary_figure_data_view.loc[_mask][self.secondary_ohlc_h_field_selector.value].max() #yapf: disable
-		if self.secondary_display_type_selector.value == 'Line':
-			_y_min = self.secondary_figure_data_view.loc[_mask][self.secondary_line_field_selector.value].min() #yapf: disable
-			_y_max = self.secondary_figure_data_view.loc[_mask][self.secondary_line_field_selector.value].max() #yapf: disable
-		if self.secondary_display_type_selector.value == 'Bar':
-			_y_min = self.secondary_figure_data_view.loc[_mask][self.secondary_bar_bottom_field_selector.value].min() #yapf: disable
-			_y_max = self.secondary_figure_data_view.loc[_mask][self.secondary_bar_top_field_selector.value].max() #yapf: disable
-		_secondary_y_range_preferred_min = _y_min - (_y_max - _y_min) * 0.03
-		_secondary_y_range_preferred_max = _y_max + (_y_max - _y_min) * 0.03
-
-		#Set Y range
-		self.primary_figure.y_range.start = _primary_y_range_preferred_min
-		self.primary_figure.y_range.end = _primary_y_range_preferred_max
-		self.secondary_figure.y_range.start = _secondary_y_range_preferred_min
-		self.secondary_figure.y_range.end = _secondary_y_range_preferred_max
-
-	def test_func(self, event) -> None:
-		_str = f'''
-		x_range_start {self.primary_figure.x_range.start}
-		x_range_end {self.primary_figure.x_range.end}
-		y_range_start {self.primary_figure.y_range.start}
-		y_range_end {self.primary_figure.y_range.end}
-		'''
-		print(_str)
+def calculate_y_range(
+	display_type_selector: models.Select,
+	ohlc_l_selector: models.Select,
+	ohlc_h_selector: models.Select,
+	line_field_selector: models.Select,
+	bar_top_field_selector: models.Select,
+	data_view: pandas.DataFrame,
+	x_min: int,
+	x_max: int,
+) -> None:
+	_mask = (data_view['position'] >= x_min) & (data_view['position'] <= x_max)
+	if display_type_selector.value == 'Candle':
+		_y_min = data_view.loc[_mask][ohlc_l_selector.value].min()
+		_y_max = data_view.loc[_mask][ohlc_h_selector.value].max()
+	if display_type_selector.value == 'Line':
+		_y_min = data_view.loc[_mask][line_field_selector.value].min()
+		_y_max = data_view.loc[_mask][line_field_selector.value].max()
+	if display_type_selector.value == 'Bar':
+		_y_min = 0
+		_y_max = data_view.loc[_mask][bar_top_field_selector.value].max()
+	_y_min = _y_min - (_y_max - _y_min) * 0.03
+	_y_max = _y_max + (_y_max - _y_min) * 0.03
+	return (_y_min, _y_max)

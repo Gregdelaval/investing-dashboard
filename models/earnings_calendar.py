@@ -9,8 +9,8 @@ class EarningsCalendar(BaseModels, DataProvier):
 		super().__init__()
 		#Define help texts
 		self.sidebar_title = self.divider(text='Earnings Calendar')
-		self.index_description = self.pretext(text='Select index calendar.')
-		self.number_of_companies_description = self.pretext(text='Show # of companies')
+		# self.index_description = self.pretext(text='Select index calendar.')
+		# self.number_of_companies_description = self.pretext(text='Show # of companies')
 
 		# Define widgets controllers
 		self.index_selector = self.selector(
@@ -18,11 +18,13 @@ class EarningsCalendar(BaseModels, DataProvier):
 			self.set_data_view,
 			self.set_source,
 			self.set_widgets,
+			title='Select index calendar',
 			options=['S&P 500', 'Nasdaq 100'],
 		)
 		self.number_of_companies_spinner = self.spinner(
 			self.set_data_view,
 			self.set_source,
+			title='Show # of companies',
 			low=1,
 			high=100,
 			step=1,
