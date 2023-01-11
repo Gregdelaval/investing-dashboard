@@ -35,9 +35,9 @@ class EarningsCalendar(BaseModels, DataProvier):
 		)
 
 		#Invoke all event handlers
-		self.set_data_set('', '', '')
-		self.set_data_view('', '', '')
-		self.set_source('', '', '')
+		self.set_data_set()
+		self.set_data_view()
+		self.set_source()
 
 		#Define table
 		columns = self.table_columns(
@@ -51,10 +51,10 @@ class EarningsCalendar(BaseModels, DataProvier):
 			height=table_height,
 		)
 
-	def set_data_set(self, attrname, old, new) -> None:
+	def set_data_set(self) -> None:
 		self.data_set = self.fetch_earnings_calendar(index=self.index_selector.value)
 
-	def set_data_view(self, attrname, old, new) -> None:
+	def set_data_view(self) -> None:
 		self.data_view = self.data_set
 		#Only show data for currently toggled index dropdown value
 		self.data_view = self.data_view.loc[self.data_view['index'] == self.index_selector.value]
@@ -62,10 +62,10 @@ class EarningsCalendar(BaseModels, DataProvier):
 		#Only amount of highlighted options
 		self.data_view = self.data_view.head(self.number_of_companies_spinner.value)
 
-	def set_widgets(self, attrname, old, new) -> None:
+	def set_widgets(self) -> None:
 		self.number_of_companies_spinner.update(high=len(self.data_set))
 
-	def set_source(self, attrname, old, new) -> None:
+	def set_source(self) -> None:
 		try:
 			_source = self.column_data_source(self.data_view)
 			self._source.data.update(_source.data)

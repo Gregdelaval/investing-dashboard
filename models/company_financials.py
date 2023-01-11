@@ -24,7 +24,7 @@ class CompanyFinancials(BaseModels, DataProvier):
 			title='Select type of financials',
 			options=['Balance Sheet', 'Cash Flow', 'Income Statements'],
 		)
-		self.set_data_set('', '', '')
+		self.set_data_set()
 
 		available_companies = self.define_available_companies(df=self.data_set)
 		self.company_selector = self.selector(
@@ -63,8 +63,8 @@ class CompanyFinancials(BaseModels, DataProvier):
 			step=1,
 			value=(date_range[0], date_range[1]),
 		)
-		self.set_data_view('', '', '')
-		self.set_source('', '', '')
+		self.set_data_view()
+		self.set_source()
 
 		#Define chart
 		hover_tool = self.define_hover_tool(
@@ -79,10 +79,10 @@ class CompanyFinancials(BaseModels, DataProvier):
 			chart_height=chart_height,
 		)
 
-	def set_data_set(self, attrname, old, new) -> None:
+	def set_data_set(self) -> None:
 		self.data_set = self.fetch_financial_statement(financial_statement=self.financial_type.value)
 
-	def set_data_view(self, attrname, old, new) -> None:
+	def set_data_view(self) -> None:
 		self.data_view = self.data_set
 		#Filter on symbol
 		self.data_view = self.data_view.loc[self.data_view['symbol'] == self.company_selector.value]
@@ -103,7 +103,7 @@ class CompanyFinancials(BaseModels, DataProvier):
 		#Rename column
 		self.data_view.rename(columns={self.financial_kpi.value: 'top'}, inplace=True)
 
-	def set_widgets(self, attrname, old, new) -> None:
+	def set_widgets(self) -> None:
 		available_companies = self.define_available_companies(df=self.data_set)
 		self.company_selector.update(options=available_companies)
 		available_kpi = self.define_financial_kpis(df=self.data_set)
@@ -115,7 +115,7 @@ class CompanyFinancials(BaseModels, DataProvier):
 		#Update chart
 		self.financials_chart.x_range.factors = self._source.data['fiscal_period']
 
-	def set_source(self, attrname, old, new) -> None:
+	def set_source(self) -> None:
 		try:
 			self._source.data = self.data_view.to_dict(orient='list')
 		except AttributeError:

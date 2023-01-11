@@ -705,6 +705,7 @@ def calculate_y_range(
 		_y_min = data_view.loc[_mask][ohlc_l_selector.value].min()
 		_y_max = data_view.loc[_mask][ohlc_h_selector.value].max()
 	if display_type_selector.value == 'Line':
+		print(data_view)
 		_y_min = data_view.loc[_mask][line_field_selector.value].min()
 		_y_max = data_view.loc[_mask][line_field_selector.value].max()
 	if display_type_selector.value == 'Bar':

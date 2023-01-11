@@ -148,7 +148,7 @@ class BaseModels():
 			title=title,
 			styles=styles,
 		)
-		spinner.on_change('value', *callbacks)
+		spinner.on_change('value', BaseEventHandler(*callbacks).on_change)
 		return spinner
 
 	def range_slider(
@@ -171,7 +171,7 @@ class BaseModels():
 			title=title,
 			styles=styles,
 		)
-		range_slider.on_change('value', *callbacks)
+		range_slider.on_change('value', BaseEventHandler(*callbacks).on_change)
 		return range_slider
 
 	def table_columns(
@@ -207,6 +207,7 @@ class BaseModels():
 		width: int,
 		autosize_mode: str = 'force_fit',
 		header_bakground_color: str = 'white',
+		text_color: str = 'black',
 	) -> models.DataTable:
 		table = models.DataTable(
 			source=source,
@@ -215,7 +216,10 @@ class BaseModels():
 			width=width,
 			index_position=None,
 			autosize_mode=autosize_mode,
-			styles={'background-color': header_bakground_color},
+			styles={
+			'background-color': header_bakground_color,
+			'color': text_color,
+			},
 		)
 		return table
 

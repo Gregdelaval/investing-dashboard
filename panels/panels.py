@@ -8,8 +8,8 @@ from ..models.investing_chart import InvestingChart
 class MyPanels():
 
 	def __init__(self) -> None:
-		# self.macro_panel = self.define_macro_panel()
-		self.us_panel = self.us_panel()
+		self.macro_panel = self.define_macro_panel()
+		self.us_panel = self.define_us_panel()
 
 	def define_macro_panel(self, tab_title: str = 'Macro'):
 		#Invoke classes holding objects needed for the panel
@@ -77,7 +77,7 @@ class MyPanels():
 			title=tab_title,
 		)
 
-	def us_panel(self, tab_title: str = 'US'):
+	def define_us_panel(self, tab_title: str = 'US'):
 		#Invoke classes holding objects needed for the panel
 		earnings_calendar = EarningsCalendar(
 			indices=['S&P 500', 'Nasdaq 100'],
