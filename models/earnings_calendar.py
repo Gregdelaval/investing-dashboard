@@ -5,12 +5,15 @@ from bokeh import models
 
 class EarningsCalendar(BaseModels, DataProvier):
 
-	def __init__(self) -> None:
+	def __init__(
+		self,
+		indices: list,
+		table_width: int,
+		table_height: int,
+	) -> None:
 		super().__init__()
 		#Define help texts
 		self.sidebar_title = self.divider(text='Earnings Calendar')
-		self.index_description = self.pretext(text='Select index calendar.')
-		self.number_of_companies_description = self.pretext(text='Show # of companies')
 
 		# Define widgets controllers
 		self.index_selector = self.selector(
@@ -18,21 +21,23 @@ class EarningsCalendar(BaseModels, DataProvier):
 			self.set_data_view,
 			self.set_source,
 			self.set_widgets,
-			options=['S&P 500', 'Nasdaq 100'],
+			title='Select index calendar',
+			options=indices,
 		)
 		self.number_of_companies_spinner = self.spinner(
 			self.set_data_view,
 			self.set_source,
+			title='Show # of companies',
 			low=1,
 			high=100,
 			step=1,
-			value=15,
+			value=25,
 		)
 
 		#Invoke all event handlers
-		self.set_data_set('', '', '')
-		self.set_data_view('', '', '')
-		self.set_source('', '', '')
+		self.set_data_set()
+		self.set_data_view()
+		self.set_source()
 
 		#Define table
 		columns = self.table_columns(
@@ -42,12 +47,14 @@ class EarningsCalendar(BaseModels, DataProvier):
 		self.table = self.define_table(
 			source=self._source,
 			columns=columns,
+			width=table_width,
+			height=table_height,
 		)
 
-	def set_data_set(self, attrname, old, new) -> None:
+	def set_data_set(self) -> None:
 		self.data_set = self.fetch_earnings_calendar(index=self.index_selector.value)
 
-	def set_data_view(self, attrname, old, new) -> None:
+	def set_data_view(self) -> None:
 		self.data_view = self.data_set
 		#Only show data for currently toggled index dropdown value
 		self.data_view = self.data_view.loc[self.data_view['index'] == self.index_selector.value]
@@ -55,10 +62,10 @@ class EarningsCalendar(BaseModels, DataProvier):
 		#Only amount of highlighted options
 		self.data_view = self.data_view.head(self.number_of_companies_spinner.value)
 
-	def set_widgets(self, attrname, old, new) -> None:
+	def set_widgets(self) -> None:
 		self.number_of_companies_spinner.update(high=len(self.data_set))
 
-	def set_source(self, attrname, old, new) -> None:
+	def set_source(self) -> None:
 		try:
 			_source = self.column_data_source(self.data_view)
 			self._source.data.update(_source.data)

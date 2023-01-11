@@ -6,15 +6,14 @@ from typing import List, Tuple
 
 class CompanyFinancials(BaseModels, DataProvier):
 
-	def __init__(self) -> None:
+	def __init__(
+		self,
+		chart_width: int,
+		chart_height: int,
+	) -> None:
 		super().__init__()
 		#Define help texts
 		self.financials_chart_title = self.divider(text='Company Financials')
-		self.company_selector_description = self.pretext(text='Select company.')
-		self.financial_type_description = self.pretext(text='Select type of financials.')
-		self.financial_kpi_description = self.pretext(text='Select KPI.')
-		self.financial_granularity_description = self.pretext(text='Select fiscal granularity.')
-		self.date_range_description = self.pretext(text='Select period.')
 
 		#Define widgets controllers
 		self.financial_type = self.selector(
@@ -22,15 +21,17 @@ class CompanyFinancials(BaseModels, DataProvier):
 			self.set_widgets,
 			self.set_data_view,
 			self.set_source,
+			title='Select type of financials',
 			options=['Balance Sheet', 'Cash Flow', 'Income Statements'],
 		)
-		self.set_data_set('', '', '')
+		self.set_data_set()
 
 		available_companies = self.define_available_companies(df=self.data_set)
 		self.company_selector = self.selector(
 			self.set_widgets,
 			self.set_data_view,
 			self.set_source,
+			title='Select company',
 			options=available_companies,
 		)
 
@@ -38,6 +39,7 @@ class CompanyFinancials(BaseModels, DataProvier):
 			self.set_data_view,
 			self.set_source,
 			self.set_widgets,
+			title='Select fiscal granularity',
 			options=['Annual', 'Quarterly'],
 		)
 
@@ -46,6 +48,7 @@ class CompanyFinancials(BaseModels, DataProvier):
 			self.set_widgets,
 			self.set_data_view,
 			self.set_source,
+			title='Select KPI',
 			options=financial_kpis,
 		)
 
@@ -54,28 +57,32 @@ class CompanyFinancials(BaseModels, DataProvier):
 			self.set_data_view,
 			self.set_source,
 			self.set_widgets,
+			title='Select period',
 			start=date_range[0],
 			end=date_range[1],
 			step=1,
 			value=(date_range[0], date_range[1]),
 		)
-		self.set_data_view('', '', '')
-		self.set_source('', '', '')
+		self.set_data_view()
+		self.set_source()
 
 		#Define chart
 		hover_tool = self.define_hover_tool(
 			tooltips=[('Period', '@fiscal_period'), ('Value', '@top{,0.00}')]
 		)
+		#TODO refactor to use separate components from base models
 		self.financials_chart = self.define_bar_chart(
 			x='fiscal_period',
 			source=self._source,
 			hover_tool=hover_tool,
+			chart_width=chart_width,
+			chart_height=chart_height,
 		)
 
-	def set_data_set(self, attrname, old, new) -> None:
+	def set_data_set(self) -> None:
 		self.data_set = self.fetch_financial_statement(financial_statement=self.financial_type.value)
 
-	def set_data_view(self, attrname, old, new) -> None:
+	def set_data_view(self) -> None:
 		self.data_view = self.data_set
 		#Filter on symbol
 		self.data_view = self.data_view.loc[self.data_view['symbol'] == self.company_selector.value]
@@ -96,7 +103,7 @@ class CompanyFinancials(BaseModels, DataProvier):
 		#Rename column
 		self.data_view.rename(columns={self.financial_kpi.value: 'top'}, inplace=True)
 
-	def set_widgets(self, attrname, old, new) -> None:
+	def set_widgets(self) -> None:
 		available_companies = self.define_available_companies(df=self.data_set)
 		self.company_selector.update(options=available_companies)
 		available_kpi = self.define_financial_kpis(df=self.data_set)
@@ -108,7 +115,7 @@ class CompanyFinancials(BaseModels, DataProvier):
 		#Update chart
 		self.financials_chart.x_range.factors = self._source.data['fiscal_period']
 
-	def set_source(self, attrname, old, new) -> None:
+	def set_source(self) -> None:
 		try:
 			self._source.data = self.data_view.to_dict(orient='list')
 		except AttributeError:
