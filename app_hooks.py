@@ -5,7 +5,6 @@ import os
 def on_session_created(session_context):
 	shutil.rmtree(os.getenv('PATH_CACHE'), ignore_errors=True)
 	os.makedirs(os.getenv('PATH_CACHE'), exist_ok=True)
-	pass
 
 
 def on_server_loaded(session_context):

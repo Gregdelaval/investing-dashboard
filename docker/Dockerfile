@@ -1,4 +1,4 @@
-# docker build . -t investing-dashboard:latest -f docker/Dockerfile && docker container prune -f && docker run -p 5006:5006 investing-dashboard:latest
+# docker container prune -f && docker build . -t investing-dashboard:latest -f docker/Dockerfile && docker run --env-file docker/.env -p 5006:5006 investing-dashboard:latest
 
 #Python settings
 FROM python:3.10.5-slim
