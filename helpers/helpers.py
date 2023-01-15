@@ -10,10 +10,6 @@ class Helpers():
 	def __init__(self) -> None:
 		pass
 
-	def load_variables(self, root: str) -> None:
-		os.environ['PATH_ROOT'] = root
-		os.environ['PATH_CACHE'] = root + 'cache//'
-
 	def get_logger(self, name: str) -> logging.Logger:
 		"""Gets custom logger that does not get handlers propagatedby Bokeh's own logger.
 

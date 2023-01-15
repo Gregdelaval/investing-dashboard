@@ -9,7 +9,7 @@ class DataProvier():
 	log = Helpers().get_logger(__name__)
 	engine = create_engine(
 		url=
-		f"mysql+pymysql://{os.getenv('mysql_user')}:{os.getenv('mysql_password')}@{os.getenv('mysql_host')}:{os.getenv('mysql_port')}"
+		f"mysql+pymysql://{os.getenv('MYSQL_USER')}:{os.getenv('MYSQL_PASSWORD')}@{os.getenv('MYSQL_HOST')}:{os.getenv('MYSQL_PORT')}"
 	)
 
 	def __init__(self) -> None:
