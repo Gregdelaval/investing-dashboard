@@ -3,6 +3,13 @@ from sqlalchemy import create_engine
 import pandas
 import os
 import hashlib
+import functools
+import timeit
+from typing import Union, Literal
+
+#1. Index search fields CREATE INDEX idx ON dl_company_information.new_index_insider_transactions (`transaction_date`, `securities_transacted`, `symbol`, `price`, `transaction_type`)
+#2. Index and use same col types for joins
+#3. Select fewest possible cols
 
 
 class DataProvier():
@@ -15,6 +22,17 @@ class DataProvier():
 	def __init__(self) -> None:
 		pass
 
+	def timeit_wrapper_decorator(func):
+
+		def wrapper(self, *args, **kwargs):
+			starttime = timeit.default_timer()
+			_ = func(self, *args, **kwargs)
+			self.log.debug(f'Execution time: {str(timeit.default_timer() - starttime)}')
+			return _
+
+		return wrapper
+
+	@timeit_wrapper_decorator
 	def query(
 		self,
 		sql_query: str,
@@ -206,6 +224,54 @@ class DataProvier():
 		JOIN
 			symbols
 			on mapping.`name` = symbols.`etoro_name`
+		'''
+		df = self.query(sql_query=sql_query)
+		return df
+
+	def fetch_insider_transactions(
+		self,
+		group_by: Union[Literal['transaction_type'], Literal['acquistion_or_disposition']],
+		aggregate_on: Union[Literal['price'], Literal['volume']],
+		scale_to_index: Union[Literal['S&P 500'], Literal['Nasdaq 100']] = False,
+	) -> pandas.DataFrame:
+
+		price = ''
+		if aggregate_on == 'price':
+			price = ', `price`'
+
+		sql_query = f'''
+		SELECT `transaction_date`, `securities_transacted`, `symbol` as `it_symbol`, `{group_by}`{price}
+		FROM `dl_company_information`.`new_index_insider_transactions`
+		'''
+		if scale_to_index:
+			sql_query = f'''
+			WITH it as (
+				{sql_query}
+			),
+			weights as (
+				SELECT `symbol` as `weights_symbol`, `weight`, `index`
+				FROM dl_index_information.new_index_constituents
+				WHERE `index` = '{scale_to_index}'
+			)
+			SELECT `transaction_date`, `securities_transacted`, `it_symbol`, `{group_by}`, `weight`, `index`, `weights_symbol`{price}
+			FROM it
+			JOIN weights on `weights_symbol` = `it_symbol`
+			'''
+
+		df = self.query(sql_query=sql_query, cache=False)
+		return df
+
+
+#TODO fix dupes in data:
+# SELECT * FROM dl_company_information.insider_transactions
+# where `filing_date` = '2022-12-16 18:04:45'
+# and `symbol` = 'MSFT'
+# and `securities_owned` = '66615.6016'
+
+	def fetch_transaction_types(self):
+		sql_query = '''
+		SELECT distinct(transaction_type)
+		FROM `dl_company_information`.`insider_transactions`
 		'''
 		df = self.query(sql_query=sql_query)
 		return df

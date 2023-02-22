@@ -3,12 +3,13 @@ from bokeh import models
 from ..models.company_financials import CompanyFinancials
 from ..models.earnings_calendar import EarningsCalendar
 from ..models.investing_chart import InvestingChart
+from ..models.insider_transactions import InsiderTransactions
 
 
 class MyPanels():
 
 	def __init__(self) -> None:
-		self.macro_panel = self.define_macro_panel()
+		# self.macro_panel = self.define_macro_panel()
 		self.us_panel = self.define_us_panel()
 
 	def define_macro_panel(self, tab_title: str = 'Macro'):
@@ -79,44 +80,25 @@ class MyPanels():
 
 	def define_us_panel(self, tab_title: str = 'US'):
 		#Invoke classes holding objects needed for the panel
-		earnings_calendar = EarningsCalendar(
-			indices=['S&P 500', 'Nasdaq 100'],
-			table_width=600,
-			table_height=600,
-		)
-		company_financials = CompanyFinancials(
-			chart_width=1000,
-			chart_height=600,
-		)
+		insider_transactions = InsiderTransactions(chart_height=800, chart_width=1200)
 
 		#Define widgets column
 		widgets = column(
-			earnings_calendar.sidebar_title,
-			row(
-			earnings_calendar.index_selector,
-			earnings_calendar.number_of_companies_spinner,
-			),
-			company_financials.financials_chart_title,
-			row(company_financials.company_selector, company_financials.financial_granularity),
-			row(
-			company_financials.financial_type,
-			company_financials.financial_kpi,
-			),
-			company_financials.date_range,
+			# insider_transactions.transaction_type_selector,
+			insider_transactions.group_by_controller,
+			insider_transactions.aggregation_controller,
+			insider_transactions.scale_to_index,
 		)
 		widgets = self.resize_widgets_column(widgets=widgets)
 
 		#Define layout of tab
-		second_column = column(earnings_calendar.table)
-		third_column = column(company_financials.financials_chart,)
 		layout = gridplot(
 			toolbar_location='left',
 			merge_tools=True,
 			toolbar_options=dict(logo=None),
 			children=[[
 			widgets,
-			second_column,
-			third_column,
+			insider_transactions.figure,
 			]]
 		)
 
@@ -125,6 +107,55 @@ class MyPanels():
 			child=layout,
 			title=tab_title,
 		)
+
+	# def define_us_panel(self, tab_title: str = 'US'):
+	# 	#Invoke classes holding objects needed for the panel
+	# 	earnings_calendar = EarningsCalendar(
+	# 		indices=['S&P 500', 'Nasdaq 100'],
+	# 		table_width=600,
+	# 		table_height=600,
+	# 	)
+	# 	company_financials = CompanyFinancials(
+	# 		chart_width=1000,
+	# 		chart_height=600,
+	# 	)
+
+	# 	#Define widgets column
+	# 	widgets = column(
+	# 		earnings_calendar.sidebar_title,
+	# 		row(
+	# 		earnings_calendar.index_selector,
+	# 		earnings_calendar.number_of_companies_spinner,
+	# 		),
+	# 		company_financials.financials_chart_title,
+	# 		row(company_financials.company_selector, company_financials.financial_granularity),
+	# 		row(
+	# 		company_financials.financial_type,
+	# 		company_financials.financial_kpi,
+	# 		),
+	# 		company_financials.date_range,
+	# 	)
+	# 	widgets = self.resize_widgets_column(widgets=widgets)
+
+	# 	#Define layout of tab
+	# 	second_column = column(earnings_calendar.table)
+	# 	third_column = column(company_financials.financials_chart,)
+	# 	layout = gridplot(
+	# 		toolbar_location='left',
+	# 		merge_tools=True,
+	# 		toolbar_options=dict(logo=None),
+	# 		children=[[
+	# 		widgets,
+	# 		second_column,
+	# 		third_column,
+	# 		]]
+	# 	)
+
+	# 	#Return panel
+	# 	return models.TabPanel(
+	# 		child=layout,
+	# 		title=tab_title,
+	# 	)
 
 	def resize_widgets_column(self, widgets: column, widgets_column_width: int = 300):
 		for _row in widgets.children:

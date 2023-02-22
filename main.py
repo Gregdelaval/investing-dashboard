@@ -6,7 +6,8 @@ from bokeh.models import Tabs
 Panels = MyPanels()
 
 # Put panels into tabs
-tabs = Tabs(tabs=[Panels.macro_panel, Panels.us_panel], styles={'color': 'white'})
+tabs = Tabs(tabs=[Panels.us_panel], styles={'color': 'white'})
+# tabs = Tabs(tabs=[Panels.macro_panel, Panels.us_panel], styles={'color': 'white'})
 
 # Put the tabs in the current document for display
 curdoc().add_root(tabs)
