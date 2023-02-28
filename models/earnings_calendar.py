@@ -52,7 +52,7 @@ class EarningsCalendar(BaseModels, DataProvier):
 		)
 
 	def set_data_set(self) -> None:
-		self.data_set = self.fetch_earnings_calendar(index=self.index_selector.value)
+		self.data_set = self.fetch_earnings_calendar()
 
 	def set_data_view(self) -> None:
 		self.data_view = self.data_set

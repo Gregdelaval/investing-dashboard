@@ -15,6 +15,12 @@ class CompanyFinancials(BaseModels, DataProvier):
 		#Define help texts
 		self.financials_chart_title = self.divider(text='Company Financials')
 
+		#Fetch controllers input
+		#distinct companies
+		#fiscal granularities
+		#type of financials
+		#distinct KPIs
+
 		#Define widgets controllers
 		self.financial_type = self.selector(
 			self.set_data_set,

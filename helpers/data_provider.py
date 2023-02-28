@@ -55,30 +55,37 @@ class DataProvier():
 
 		return df
 
-	def fetch_earnings_calendar(self, index: str) -> pandas.DataFrame:
-		"""Fetches earnings for passed index
-
-		Args:
-			index (str): Index to fetch earnings calendar for.
+	def fetch_earnings_calendar(self) -> pandas.DataFrame:
+		"""Fetches earnings calendar
 
 		Returns:
 			pandas.DataFrame:
 		"""
 
 		sql_query = fr'''
-		WITH constituents as (
-			SELECT `symbol`, `name`, `weight`, `index`
+		WITH constituents AS
+		(
+			SELECT  `symbol`,
+					`name`,
+					`weight`,
+					`index`
 			FROM `dl_index_information`.`index_constituents`
-			WHERE `index` = '{index}'
-			ORDER BY `weight` DESC
-		),
-		calendar as (
-			SELECT `symbol`, `date`, `time`
+		), calendar AS
+		(
+			SELECT  `symbol`,
+					`date`,
+					`time`
 			FROM `dl_earnings`.`calendar`
-			)
-		SELECT constituents.`symbol`, constituents.`name`, constituents.`weight`, constituents.`index`, calendar.`date`, calendar.`time`
+		)
+		SELECT  constituents.`symbol`,
+				constituents.`name`,
+				constituents.`weight`,
+				constituents.`index`,
+				calendar.`date`,
+				calendar.`time`
 		FROM constituents
-		LEFT JOIN calendar ON constituents.`symbol` = calendar.`symbol`
+		LEFT JOIN calendar
+		ON constituents.`symbol` = calendar.`symbol`
 		'''
 		df = self.query(sql_query=sql_query)
 		return df
@@ -102,7 +109,7 @@ class DataProvier():
 		return df
 
 	def fetch_symbols_mapping(self) -> pandas.DataFrame:
-		sql_query = f'SELECT * FROM `dl_investing_instruments`.`symbols_mapping`'
+		sql_query = f'SELECT `common_name` FROM `dl_investing_instruments`.`symbols_mapping`'
 		df = self.query(sql_query=sql_query)
 		return df
 
@@ -113,99 +120,71 @@ class DataProvier():
 
 	def fetch_portfolio_historical_positions(self):
 		sql_query = fr'''
-		WITH historical_positions as
+		WITH historical_positions AS
 		(
-		SELECT
-			*
-		FROM
-			`dl_portfolio`.`gregdelaval_etoro_portfolio_history`
-		)
-		,
-		mapping as
+			SELECT  *
+			FROM `dl_portfolio`.`gregdelaval_etoro_portfolio_history`
+		) , mapping AS
 		(
-		SELECT
-			`instrument_id`,
-			`name`,
-			`occurred_at`
-		FROM
-			`dl_portfolio`.`gregdelaval_etoro_portfolio_activity`
-		)
-		,
-		symbols as
+			SELECT  `instrument_id`,
+					`name`,
+					`occurred_at`
+			FROM `dl_portfolio`.`gregdelaval_etoro_portfolio_activity`
+		) , symbols AS
 		(
-		SELECT
-			*
-		from
-			`dl_investing_instruments`.`symbols_mapping`
+			SELECT  *
+			FROM `dl_investing_instruments`.`symbols_mapping`
 		)
-		SELECT DISTINCT
-		symbols.`common_name`,
-		historical_positions.`open_datetime`,
-		historical_positions.`open_rate`,
-		historical_positions.`is_buy`,
-		historical_positions.`close_datetime`,
-		historical_positions.`close_rate`,
-        historical_positions.`close_reason`,
-		historical_positions.`net_profit`,
-		historical_positions.`leverage`,
-		mapping.`name`
-		FROM
-		historical_positions
-		JOIN
-			mapping
-			on historical_positions.`instrument_id` = mapping.`instrument_id`
-		JOIN
-			symbols
-			on mapping.`name` = symbols.`etoro_name`
+		SELECT  DISTINCT symbols.`common_name`,
+				historical_positions.`open_datetime`,
+				historical_positions.`open_rate`,
+				historical_positions.`is_buy`,
+				historical_positions.`close_datetime`,
+				historical_positions.`close_rate`,
+				historical_positions.`close_reason`,
+				historical_positions.`net_profit`,
+				historical_positions.`leverage`,
+				mapping.`name`
+		FROM historical_positions
+		JOIN mapping
+		ON historical_positions.`instrument_id` = mapping.`instrument_id`
+		JOIN symbols
+		ON mapping.`name` = symbols.`etoro_name`
 		'''
 		df = self.query(sql_query=sql_query)
 		return df
 
 	def fetch_portfolio_open_positions(self):
 		sql_query = fr'''
-		WITH open_positions as
+		WITH open_positions AS
 		(
-		SELECT
-			*
-		FROM
-			`dl_portfolio`.`gregdelaval_etoro_positions`
-		)
-		,
-		mapping as
+			SELECT  *
+			FROM `dl_portfolio`.`gregdelaval_etoro_positions`
+		) , mapping AS
 		(
-		SELECT
-			`instrument_id`,
-			`name`,
-			`occurred_at`
-		FROM
-			`dl_portfolio`.`gregdelaval_etoro_portfolio_activity`
-		)
-		,
-		symbols as
+			SELECT  `instrument_id`,
+					`name`,
+					`occurred_at`
+			FROM `dl_portfolio`.`gregdelaval_etoro_portfolio_activity`
+		) , symbols AS
 		(
-		SELECT
-			*
-		from
-			`dl_investing_instruments`.`symbols_mapping`
+			SELECT  *
+			FROM `dl_investing_instruments`.`symbols_mapping`
 		)
-		SELECT DISTINCT
-		symbols.`common_name`,
-		open_positions.`open_datetime`,
-		open_positions.`open_rate`,
-		open_positions.`is_buy`,
-		open_positions.`take_profit_rate`,
-		open_positions.`stop_loss_rate`,
-		open_positions.`amount`,
-		open_positions.`leverage`,
-		mapping.`name`
-		FROM
-		open_positions
-		JOIN
-			mapping
-			on open_positions.`instrument_id` = mapping.`instrument_id`
-		JOIN
-			symbols
-			on mapping.`name` = symbols.`etoro_name`
+		SELECT  DISTINCT symbols.`common_name`,
+				open_positions.`open_datetime`,
+				open_positions.`open_rate`,
+				open_positions.`is_buy`,
+				open_positions.`take_profit_rate`,
+				open_positions.`stop_loss_rate`,
+				open_positions.`amount`,
+				open_positions.`leverage`,
+				mapping.`name`
+		FROM open_positions
+		JOIN mapping
+		ON open_positions.`instrument_id` = mapping.`instrument_id`
+		JOIN symbols
+		ON mapping.`name` = symbols.`etoro_name`
 		'''
 		df = self.query(sql_query=sql_query)
 		return df

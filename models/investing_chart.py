@@ -45,7 +45,7 @@ class InvestingChart(BaseModels, DataProvier):
 		#Set chart dimensions
 		self.chart_width = chart_width
 		self.chart_height = chart_height
-		symbols_mapping = self.fetch_symbols_mapping()
+		symbols_mapping = self.fetch_symbols_mapping()['common_name'].values.tolist()
 
 		#define labels
 		self.primary_axis_header = self.divider(text='Primary figure')
@@ -64,7 +64,7 @@ class InvestingChart(BaseModels, DataProvier):
 		)
 		self.primary_instrument_selector = self.selector(
 			title='Instrument',
-			options=symbols_mapping['common_name'].values.tolist(),
+			options=symbols_mapping,
 		)
 		self.primary_granularity_selector = self.selector(
 			options=list(self.granularities.keys()),
@@ -73,7 +73,7 @@ class InvestingChart(BaseModels, DataProvier):
 		)
 		self.secondary_instrument_selector = self.selector(
 			title='Instrument',
-			options=symbols_mapping['common_name'].values.tolist(),
+			options=symbols_mapping,
 		)
 		self.secondary_granularity_selector = self.selector(
 			options=list(self.granularities.keys()),
