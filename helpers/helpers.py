@@ -5,9 +5,6 @@ import sys
 
 class Helpers():
 
-	def __init__(self) -> None:
-		pass
-
 	def file_exists(self, file: str) -> bool:
 		return os.path.isfile(file)
 

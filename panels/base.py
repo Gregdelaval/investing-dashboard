@@ -1,14 +1,12 @@
-import pandas
-from bokeh import plotting, models, events, layouts
-from typing import List, Dict, Callable, Tuple, Union, Type, Literal
-from ..helpers.helpers import Helpers
+from bokeh import models, events, layouts
+from typing import List, Callable, Literal
 from sqlalchemy import create_engine
-import pandas
 from functools import wraps
+import pandas
 import os
 import hashlib
-import logging
 import time
+from ..helpers.helpers import Helpers
 
 
 class Base:
@@ -175,63 +173,6 @@ class BaseModel(Base):
 		SELECT *
 		FROM dl_index_information.coalesced_index_constituents_weights
 		'''
-		df = self.query(sql_query=sql_query)
-		return df
-
-	# def fetch_earnings_calendar(self) -> pandas.DataFrame:
-	# 	sql_query = fr'''
-	# 	WITH constituents AS
-	# 	(
-	# 		SELECT  `symbol`,
-	# 				`name`,
-	# 				`weight`,
-	# 				`index`
-	# 		FROM `dl_index_information`.`index_constituents`
-	# 	), calendar AS
-	# 	(
-	# 		SELECT  `symbol`,
-	# 				`date`,
-	# 				`time`
-	# 		FROM `dl_earnings`.`calendar`
-	# 	)
-	# 	SELECT  constituents.`symbol`,
-	# 			constituents.`name`,
-	# 			constituents.`weight`,
-	# 			constituents.`index`,
-	# 			calendar.`date`,
-	# 			calendar.`time`
-	# 	FROM constituents
-	# 	LEFT JOIN calendar
-	# 	ON constituents.`symbol` = calendar.`symbol`
-	# 	'''
-	# 	df = self.query(sql_query=sql_query)
-	# 	return df
-
-	# def fetch_financial_statement(self, financial_statement: str) -> pandas.DataFrame:
-	# 	"""Fetches table containing passed financials statement for all companies
-
-	# 	Args:
-	# 		financial_statement (str): 'Balance Sheet'|'Cash Flow'|'Income Statements'
-
-	# 	Returns:
-	# 		pandas.DataFrame:
-	# 	"""
-	# 	financial_statements = {
-	# 		'Balance Sheet': 'balance_sheet_statements',
-	# 		'Cash Flow': 'cash_flow_statements',
-	# 		'Income Statements': 'income_statements',
-	# 	}
-
-	# 	sql_query = fr'''
-	# 	SELECT *
-	# 	FROM `dl_earnings`.`{financial_statements[financial_statement]}`
-	# 	'''
-
-	# 	df = self.query(sql_query=sql_query)
-	# 	return df
-
-	def fetch_portfolio_credit(self) -> pandas.DataFrame:
-		sql_query = 'SELECT * FROM `dl_portfolio`.`etoro_credit`'
 		df = self.query(sql_query=sql_query)
 		return df
 
@@ -429,12 +370,6 @@ class BaseController(Base):
 
 
 class BaseView(Base):
-	# date_format = '%Y-%m-%d'
-	# date_time_format = '%Y-%m-%d %H:%M'
-	# primary_color = '#00eeff'
-	# primary_color_faded = '#00b0bd'
-	# secondary_color = '#ff8400'
-	# secondary_color_faded = '#bd6100'
 
 	def __init__(self, logger_name) -> None:
 		super().__init__(logger_name=logger_name)
@@ -450,155 +385,3 @@ class BaseView(Base):
 				_row.width = column_width
 
 		return content
-
-	# def checkbox_button_group(
-	# 	self,
-	# 	*callbacks: Callable,
-	# 	labels: list,
-	# 	**kwargs,
-	# ) -> models.CheckboxButtonGroup:
-	# 	widget = models.CheckboxButtonGroup(
-	# 		**kwargs,
-	# 		labels=labels,
-	# 	)
-	# 	widget.on_change('active', *callbacks)
-	# 	return widget
-
-	# def label(self, text_color: str = 'white', **kwargs) -> models.Label:
-	# 	return models.Label(
-	# 		text_color=text_color,
-	# 		**kwargs,
-	# 	)
-
-	# def define_box_annotation(self, **kwargs) -> models.BoxAnnotation:
-	# 	return models.BoxAnnotation(**kwargs)
-
-	# def divider(
-	# 	self,
-	# 	text: str,
-	# 	color: str = 'white',
-	# ) -> models.Div:
-	# 	return models.Div(
-	# 		text=f'<b>{text}</b>',
-	# 		styles={'color': color},
-	# 	)
-
-	# def pretext(
-	# 	self,
-	# 	text: str,
-	# 	color: str = 'white',
-	# ) -> models.PreText:
-	# 	return models.PreText(
-	# 		text=f'{text}',
-	# 		styles={'color': color},
-	# 	)
-
-	# def spinner(
-	# 	self,
-	# 	*callbacks: Callable,
-	# 	title: str,
-	# 	low: int,
-	# 	high: int,
-	# 	step: int,
-	# 	value: int,
-	# 	styles: Dict[str, str] = {'color': 'white'},
-	# ) -> models.Spinner:
-	# 	spinner = models.Spinner(
-	# 		low=low,
-	# 		high=high,
-	# 		step=step,
-	# 		value=value,
-	# 		title=title,
-	# 		styles=styles,
-	# 	)
-	# 	# spinner.on_change('value', BaseEventHandler(*callbacks).on_change)
-	# 	return spinner
-
-	# def range_slider(
-	# 	self,
-	# 	*callbacks: Callable,
-	# 	title: str,
-	# 	start: float,
-	# 	end: float,
-	# 	value: Tuple[float, float],
-	# 	step: float,
-	# 	show_value: bool = False,
-	# 	styles: Dict[str, str] = {'color': 'white'},
-	# ) -> models.Slider:
-	# 	range_slider = models.RangeSlider(
-	# 		start=start,
-	# 		end=end,
-	# 		value=value,
-	# 		step=step,
-	# 		show_value=show_value,
-	# 		title=title,
-	# 		styles=styles,
-	# 	)
-	# 	# range_slider.on_change('value', BaseEventHandler(*callbacks).on_change)
-	# 	return range_slider
-
-	# def table_columns(
-	# 	self,
-	# 	df: pandas.DataFrame,
-	# 	formats: dict = {},
-	# ) -> List[models.TableColumn]:
-	# 	'''
-	# 	df = pandas data frame to define list of table columns from
-	# 	formats = dict of column:models.<formatter>(format='') to apply for formatting
-	# 	'''
-	# 	columns = []
-	# 	for column in df.columns:
-	# 		_args = dict(
-	# 			field=column,
-	# 			title=column,
-	# 		)
-	# 		if column == 'datetime':
-	# 			_args['formatter'] = models.DateFormatter(format=self.date_time_format)
-	# 		if column == 'date':
-	# 			_args['formatter'] = models.DateFormatter(format=self.date_format)
-	# 		if column in formats.keys():
-	# 			_args['formatter'] = formats[column]
-	# 		table_column = models.TableColumn(**_args)
-	# 		columns.append(table_column)
-	# 	return columns
-
-	# def define_hover_tool(
-	# 	self,
-	# 	tooltips: List[Tuple[str, str]] = [],
-	# 	formatters: Dict[str, str] = {},
-	# 	renderers: List[models.DataRenderer] = [],
-	# 	mode: str = 'vline',
-	# 	name: str = 'hover_tool',
-	# 	**kwargs,
-	# ) -> models.HoverTool:
-	# 	hover_tool = models.HoverTool(
-	# 		tooltips=tooltips,
-	# 		formatters=formatters,
-	# 		renderers=renderers,
-	# 		name=name,
-	# 		mode=mode,
-	# 		**kwargs,
-	# 	)
-	# 	return hover_tool
-
-	# def define_bar_chart(
-	# 	self,
-	# 	source: models.ColumnDataSource,
-	# 	x: str,
-	# 	chart_width: int,
-	# 	chart_height: int,
-	# 	width: float = 0.5,
-	# 	hover_tool: models.HoverTool = None,
-	# ) -> plotting.figure:
-	# 	x_range = source.data[x]
-	# 	chart = plotting.figure(
-	# 		x_range=x_range,
-	# 		width=chart_width,
-	# 		height=chart_height,
-	# 	)
-	# 	chart.vbar(x=x, source=source, width=width)
-	# 	chart.yaxis[0].formatter = models.NumeralTickFormatter()
-	# 	if hover_tool:
-	# 		chart.tools.append(hover_tool)
-
-	# 	return chart
