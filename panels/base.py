@@ -162,16 +162,25 @@ class BaseModel(Base):
 
 	def fetch_earnings_calendar(self) -> pandas.DataFrame:
 		sql_query = fr'''
-		SELECT `date`, `fiscal_date_ending`, `symbol`, `time`, `updated_from_date`
+		SELECT `date`, `fiscal_date_ending`,`symbol`,  `time`
 		FROM dl_company_information.earnings_calendar
 		'''
 		df = self.query(sql_query=sql_query)
 		return df
 
-	def fetch_index_constituents(self) -> pandas.DataFrame:
+	def fetch_available_index_constituents(self) -> pandas.DataFrame:
 		sql_query = fr'''
-		SELECT *
-		FROM dl_index_information.coalesced_index_constituents_weights
+		SELECT common_name
+		FROM dl_supplied_tables.symbols_mapping
+		WHERE tradeable_etf <> ""
+		'''
+		df = self.query(sql_query=sql_query)
+		return df
+
+	def fetch_index_constituents(self, index) -> pandas.DataFrame:
+		sql_query = fr'''
+		SELECT `asset`, `name`, `weight_percentage`
+		FROM dl_index_information.{index}_constituents_weights
 		'''
 		df = self.query(sql_query=sql_query)
 		return df

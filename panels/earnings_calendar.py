@@ -88,13 +88,22 @@ class EarningsCalendarModel(BaseModel):
 	def __init__(self, logger_name) -> None:
 		super().__init__(logger_name=logger_name)
 
+		self._available_indices_data_set = pandas.DataFrame()
+
 		self._constituents_data_set = pandas.DataFrame()
-		self._constituents_data_view = pandas.DataFrame()
 
 		self._earnings_data_set = pandas.DataFrame()
 		self._earnings_data_view = pandas.DataFrame()
 		self._columns = [models.TableColumn, ...]
 		self._cds = models.ColumnDataSource(self._earnings_data_view)
+
+	@property
+	def available_indices_data_set(self):
+		return self._available_indices_data_set
+
+	@available_indices_data_set.setter
+	def available_indices_data_set(self, df: pandas.DataFrame):
+		self._available_indices_data_set = df
 
 	@property
 	def cds(self):
@@ -132,14 +141,6 @@ class EarningsCalendarModel(BaseModel):
 		self._earnings_data_set = df
 
 	@property
-	def constituents_data_view(self):
-		return self._constituents_data_view
-
-	@constituents_data_view.setter
-	def constituents_data_view(self, df):
-		self._constituents_data_view = df
-
-	@property
 	def constituents_data_set(self):
 		return self._constituents_data_set
 
@@ -160,9 +161,9 @@ class EarningsCalendar(EarningsCalendarView, EarningsCalendarModel, BaseControll
 			chart_height=9 * 50,
 			panel_title='Earnings Calendar',
 		)
-		self.constituents_data_set = self.fetch_index_constituents()
+		self.available_indices_data_set = self.fetch_available_index_constituents()
 
-		self.index_selector.options = self.constituents_available_indices(self.constituents_data_set)
+		self.index_selector.options = self.available_indices_data_set['common_name'].tolist()
 		self.index_selector.value = self.index_selector.options[0]
 
 		self.append_callback(model=self.index_selector, function=self.update_number_of_companies_input)
@@ -171,24 +172,21 @@ class EarningsCalendar(EarningsCalendarView, EarningsCalendarModel, BaseControll
 
 	@BaseController.log_call
 	def update_table(self):
-		#Update model components
-		self.constituents_data_view = self.filter_data_frame(
-			self.constituents_data_set,
-			column='index_name',
-			value=self.index_selector.value,
-		)
 
 		if self.earnings_data_set.empty:
 			self.earnings_data_set = self.fetch_earnings_calendar()
+
 		self.earnings_data_view = self.earnings_data_set
 		self.earnings_data_view = pandas.merge(
 			left=self.earnings_data_view,
-			right=self.constituents_data_view[['symbol', 'weight']],
+			right=self.constituents_data_set[['asset', 'name', 'weight_percentage']],
 			left_on='symbol',
-			right_on='symbol',
+			right_on='asset',
 			how='right',
 		)
-		self.earnings_data_view = self.earnings_data_view.sort_values(by='weight', ascending=False)
+		self.earnings_data_view = self.earnings_data_view.sort_values(
+			by='weight_percentage', ascending=False
+		)
 		self.earnings_data_view = self.earnings_data_view.head(self.number_of_companies_input.value)
 
 		self.cds.data = self.earnings_data_view
@@ -201,12 +199,8 @@ class EarningsCalendar(EarningsCalendarView, EarningsCalendarModel, BaseControll
 	@BaseController.log_call
 	def update_number_of_companies_input(self):
 		#Update view components
-		max_number_of_companies = len(
-			self.filter_data_frame(
-			self.constituents_data_set,
-			column='index_name',
-			value=self.index_selector.value,
-			)
-		)
+		self.constituents_data_set = self.fetch_index_constituents(index=self.index_selector.value)
+
+		max_number_of_companies = len(self.constituents_data_set)
 
 		self.number_of_companies_input.value = max_number_of_companies
