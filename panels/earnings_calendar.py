@@ -121,7 +121,6 @@ class EarningsCalendarModel(BaseModel):
 			if column in ['date', 'fiscal_date_ending', 'updated_from_date']:
 				_args['formatter'] = models.DateFormatter(format='%Y-%m-%d')
 			_columns.append(models.TableColumn(**_args))
-
 		self._columns = _columns
 
 	@property
