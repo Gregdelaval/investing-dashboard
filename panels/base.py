@@ -7,7 +7,6 @@ import os
 import hashlib
 import time
 from ..helpers.helpers import Helpers
-from os import OSError
 
 
 class Base:
@@ -103,7 +102,7 @@ class BaseModel(Base):
 			try:
 				self.log.debug(f'Storing response in cache.')
 				df.to_pickle(cached_file_name)
-			except OSError as e:
+			except Exception as e:
 				self.log.error(f'Failed writing cache with cached_file_name: {cached_file_name}')
 
 		return df
