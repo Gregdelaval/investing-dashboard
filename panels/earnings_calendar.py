@@ -3,6 +3,7 @@ from bokeh import models
 from bokeh.layouts import gridplot, column, row
 import pandas
 from typing import List
+import colorsys
 
 
 class EarningsCalendarView(BaseView):
@@ -17,6 +18,7 @@ class EarningsCalendarView(BaseView):
 		super().__init__(logger_name=logger_name)
 		#Table
 		self.table = models.DataTable(
+			fit_columns=True,
 			width=chart_width,
 			height=chart_height,
 			index_position=None,
@@ -91,6 +93,7 @@ class EarningsCalendarModel(BaseModel):
 		self._available_indices_data_set = pandas.DataFrame()
 
 		self._constituents_data_set = pandas.DataFrame()
+		self._constituents_data_view = pandas.DataFrame()
 
 		self._earnings_data_set = pandas.DataFrame()
 		self._earnings_data_view = pandas.DataFrame()
@@ -113,13 +116,20 @@ class EarningsCalendarModel(BaseModel):
 	def columns(self):
 		return self._columns
 
+	def get_column_width(self, column_data):
+		max_length = max([len(str(x)) for x in column_data])
+		width = max_length * 8  # Multiply by a scaling factor to estimate the width in pixels
+		return max(width, 80)
+
 	@columns.setter
 	def columns(self, df: pandas.DataFrame):
 		_columns = []
 		for column in df.columns:
-			_args = dict(field=column, title=column)
+			_args = dict(field=column, title=column, width=self.get_column_width(df[column]))
 			if column in ['date', 'fiscal_date_ending', 'updated_from_date']:
 				_args['formatter'] = models.DateFormatter(format='%Y-%m-%d')
+			if column == 'weight_percentage':
+				_args['formatter'] = models.NumberFormatter(format='0.00')
 			_columns.append(models.TableColumn(**_args))
 		self._columns = _columns
 
@@ -140,6 +150,14 @@ class EarningsCalendarModel(BaseModel):
 		self._earnings_data_set = df
 
 	@property
+	def constituents_data_view(self):
+		return self._constituents_data_view
+
+	@constituents_data_view.setter
+	def constituents_data_view(self, df):
+		self._constituents_data_view = df
+
+	@property
 	def constituents_data_set(self):
 		return self._constituents_data_set
 
@@ -156,8 +174,8 @@ class EarningsCalendar(EarningsCalendarView, EarningsCalendarModel, BaseControll
 	def __init__(self) -> None:
 		super().__init__(
 			logger_name=__name__,
-			chart_width=16 * 50,
-			chart_height=9 * 50,
+			chart_width=16 * 60,
+			chart_height=9 * 60,
 			panel_title='Earnings Calendar',
 		)
 		self.available_indices_data_set = self.fetch_available_index_constituents()
@@ -165,29 +183,49 @@ class EarningsCalendar(EarningsCalendarView, EarningsCalendarModel, BaseControll
 		self.index_selector.options = self.available_indices_data_set['common_name'].tolist()
 		self.index_selector.value = self.index_selector.options[0]
 
+		self.append_callback(model=self.index_selector, function=self.update_constituents_data)
 		self.append_callback(model=self.index_selector, function=self.update_number_of_companies_input)
+		self.append_callback(model=self.update_table_button, function=self.update_constituents_data)
+		self.append_callback(model=self.update_table_button, function=self.update_earnings_data)
 		self.append_callback(model=self.update_table_button, function=self.update_table)
-		self.update_number_of_companies_input()
 
 	@BaseController.log_call
-	def update_table(self):
+	def update_constituents_data(self):
+		if self.constituents_data_set.empty:
+			self.constituents_data_set = self.fetch_index_constituents()
 
+		self.constituents_data_view = self.constituents_data_set
+		self.constituents_data_view = self.filter_data_frame(
+			self.constituents_data_view,
+			column='common_index_name',
+			value=self.index_selector.value,
+		)
+
+	@BaseController.log_call
+	def update_earnings_data(self):
 		if self.earnings_data_set.empty:
 			self.earnings_data_set = self.fetch_earnings_calendar()
 
 		self.earnings_data_view = self.earnings_data_set
 		self.earnings_data_view = pandas.merge(
 			left=self.earnings_data_view,
-			right=self.constituents_data_set[['asset', 'name', 'weight_percentage']],
+			right=self.constituents_data_view[['asset', 'name', 'weight_percentage']],
 			left_on='symbol',
 			right_on='asset',
 			how='right',
 		)
 		self.earnings_data_view = self.earnings_data_view.sort_values(
-			by='weight_percentage', ascending=False
+			by='weight_percentage',
+			ascending=False,
 		)
+		self.earnings_data_view = self.earnings_data_view.drop(columns=['symbol'])
+		self.earnings_data_view = self.earnings_data_view.rename(columns={'asset': 'symbol'})
+
 		self.earnings_data_view = self.earnings_data_view.head(self.number_of_companies_input.value)
 
+	@BaseController.log_call
+	def update_table(self):
+		#Update model components
 		self.cds.data = self.earnings_data_view
 		self.columns = self.earnings_data_view
 
@@ -198,8 +236,4 @@ class EarningsCalendar(EarningsCalendarView, EarningsCalendarModel, BaseControll
 	@BaseController.log_call
 	def update_number_of_companies_input(self):
 		#Update view components
-		self.constituents_data_set = self.fetch_index_constituents(index=self.index_selector.value)
-
-		max_number_of_companies = len(self.constituents_data_set)
-
-		self.number_of_companies_input.value = max_number_of_companies
+		self.number_of_companies_input.value = len(self.constituents_data_view)
