@@ -15,3 +15,4 @@ tabs = Tabs(tabs=_tabs, styles={'color': 'white'})
 
 # Put the tabs in the current document for display
 curdoc().add_root(tabs)
+curdoc().title = "Investing Dashboard"

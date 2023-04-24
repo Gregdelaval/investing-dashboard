@@ -180,10 +180,10 @@ class BaseModel(Base):
 		df = self.query(sql_query=sql_query)
 		return df
 
-	def fetch_index_constituents(self, index) -> pandas.DataFrame:
+	def fetch_index_constituents(self) -> pandas.DataFrame:
 		sql_query = fr'''
-		SELECT `asset`, `name`, `weight_percentage`
-		FROM dl_index_information.{index}_constituents_weights
+		SELECT `asset`, `name`, `weight_percentage`, `common_index_name`
+		FROM dl_index_information.consolidated_constituents_weights
 		'''
 		df = self.query(sql_query=sql_query)
 		return df
@@ -298,6 +298,107 @@ class BaseModel(Base):
 		df = self.query(sql_query=sql_query)
 		return df
 
+	def fetch_real_exposure_by_instrument(self):
+		sql_query = r'''
+		WITH labeled_positions AS (
+			SELECT mapping.`symbol_full` as etoro_name,
+				mapping.`instrument_type_id`,
+				symbols.`common_name`,
+				etoro_positions.`amount`,
+				etoro_positions.`leverage`,
+				etoro_positions.`is_buy`
+			FROM `dl_portfolio`.`etoro_positions` AS etoro_positions
+			JOIN `dl_portfolio`.`etoro_symbols_mapping` AS mapping
+			ON etoro_positions.`instrument_id` = mapping.`instrument_id`
+			JOIN `dl_supplied_tables`.`symbols_mapping` AS symbols
+			ON mapping.`symbol_full` = symbols.`etoro_name`
+		), aggregated_exposure AS (
+			SELECT etoro_name, common_name,
+				SUM(CASE
+					WHEN is_buy = 0 THEN -amount * leverage
+					ELSE amount * leverage
+				END) AS real_exposure
+			FROM labeled_positions
+			GROUP BY etoro_name, common_name
+		)
+		SELECT etoro_name, common_name, real_exposure
+		FROM aggregated_exposure
+		'''
+		df = self.query(sql_query=sql_query)
+		return df
+
+	def fetch_sector_exposure_data(self):
+		sql_query = r'''
+		WITH labeled_positions AS (
+			SELECT mapping.`symbol_full` as etoro_name,
+				mapping.`instrument_type_id`,
+				symbols.`common_name`,
+				etoro_positions.`amount`,
+				etoro_positions.`leverage`,
+				etoro_positions.`is_buy`
+			FROM `dl_portfolio`.`etoro_positions` AS etoro_positions
+			JOIN `dl_portfolio`.`etoro_symbols_mapping` AS mapping
+			ON etoro_positions.`instrument_id` = mapping.`instrument_id`
+			JOIN `dl_supplied_tables`.`symbols_mapping` AS symbols
+			ON mapping.`symbol_full` = symbols.`etoro_name`
+		), aggregated_exposure AS (
+			SELECT etoro_name, common_name, instrument_type_id,
+				SUM(CASE
+					WHEN is_buy = 0 THEN -amount * leverage
+					ELSE amount * leverage
+				END) AS real_exposure
+			FROM labeled_positions
+			GROUP BY etoro_name, common_name, instrument_type_id
+		), aggregated_sector_exposure AS (
+			SELECT
+				COALESCE(sector_weights.sector, "Unknown") as sector,
+				SUM(COALESCE(sector_weights.weight_percentage / 100, 1) * aggregated_exposure.real_exposure) as sector_exposure
+			FROM aggregated_exposure
+			LEFT JOIN `dl_index_information`.`consolidated_sector_weights` AS sector_weights
+			ON aggregated_exposure.`common_name` = sector_weights.`common_index_name`
+			GROUP BY sector
+		)
+		select * from aggregated_sector_exposure
+		'''
+		df = self.query(sql_query=sql_query)
+		return df
+
+	def fetch_country_exposure_data(self):
+		sql_query = r'''
+		WITH labeled_positions AS (
+			SELECT mapping.`symbol_full` as etoro_name,
+				mapping.`instrument_type_id`,
+				symbols.`common_name`,
+				etoro_positions.`amount`,
+				etoro_positions.`leverage`,
+				etoro_positions.`is_buy`
+			FROM `dl_portfolio`.`etoro_positions` AS etoro_positions
+			JOIN `dl_portfolio`.`etoro_symbols_mapping` AS mapping
+			ON etoro_positions.`instrument_id` = mapping.`instrument_id`
+			JOIN `dl_supplied_tables`.`symbols_mapping` AS symbols
+			ON mapping.`symbol_full` = symbols.`etoro_name`
+		), aggregated_exposure AS (
+			SELECT etoro_name, common_name, instrument_type_id,
+				SUM(CASE
+					WHEN is_buy = 0 THEN -amount * leverage
+					ELSE amount * leverage
+				END) AS real_exposure
+			FROM labeled_positions
+			GROUP BY etoro_name, common_name, instrument_type_id
+		), aggregated_country_exposure AS (
+			SELECT
+				COALESCE(country_weights.country, "Unknown") as country,
+				SUM(COALESCE(country_weights.weight_percentage / 100, 1) * aggregated_exposure.real_exposure) as country_exposure
+			FROM aggregated_exposure
+			LEFT JOIN `dl_index_information`.`consolidated_country_weights` AS country_weights
+			ON aggregated_exposure.`common_name` = country_weights.`common_index_name`
+			GROUP BY country
+		)
+		select * from aggregated_country_exposure
+		'''
+		df = self.query(sql_query=sql_query)
+		return df
+
 
 class BaseController(Base):
 
@@ -387,7 +488,7 @@ class BaseView(Base):
 		super().__init__(logger_name=logger_name)
 
 	@staticmethod
-	def fit_column_content(content: layouts.column, column_width: int = 300):
+	def fit_column_content(content: layouts.column, column_width: int = 300) -> layouts.column:
 		for _row in content.children:
 			if isinstance(_row, models.Row):
 				_row_children_width = column_width / len(_row.children) - len(_row.children) * 2

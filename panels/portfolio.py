@@ -11,50 +11,128 @@ class PortfolioView(BaseView):
 	def __init__(
 		self,
 		logger_name,
-		chart_width,
-		chart_height,
+		instrument_plot_width,
+		instrument_plot_height,
+		sector_table_width,
+		sector_table_height,
 		panel_title,
 	) -> None:
 		super().__init__(logger_name=logger_name)
-		#Figure
-		self._figure = plotting.figure(
+		#Tools
+		self._sector_exposure_hover_tool = models.HoverTool()
+		self._country_exposure_hover_tool = models.HoverTool()
+		self._instrument_exposure_hover_tool = models.HoverTool()
+
+		#Figures
+		self._instrument_plot = plotting.figure(
 			x_axis_type='datetime',
 			active_scroll='wheel_zoom',
-			width=chart_width,
-			height=chart_height,
+			width=instrument_plot_width,
+			height=instrument_plot_height,
 			background_fill_alpha=0.5,
 			x_range=[0, 1],
 			y_range=[0, 1],
 		)
-		self.figure.yaxis.major_label_text_color = "white"
-		self.figure.xaxis.major_label_text_color = "white"
-		self.figure.xgrid.grid_line_color = None
-		self.figure.ygrid.grid_line_color = None
-		self.figure.yaxis.formatter = models.NumeralTickFormatter(format='0')
-		self.figure.xaxis.formatter = models.DatetimeTickFormatter()
+		self.instrument_plot.yaxis.major_label_text_color = "white"
+		self.instrument_plot.xaxis.major_label_text_color = "white"
+		self.instrument_plot.xgrid.grid_line_color = None
+		self.instrument_plot.ygrid.grid_line_color = None
+		self.instrument_plot.yaxis.formatter = models.NumeralTickFormatter(format='0')
+		self.instrument_plot.xaxis.formatter = models.DatetimeTickFormatter()
+
+		self._sector_exposure_chart = plotting.figure(
+			title='Sector Exposure',
+			width=sector_table_width,
+			height=sector_table_height,
+			background_fill_alpha=0.5,
+			x_range=models.Range1d(0, 1, bounds="auto"),
+			y_range=models.Range1d(-1, 1, bounds="auto"),
+		)
+		self.sector_exposure_chart.title.text_color = 'white'
+		self.sector_exposure_chart.yaxis[0].formatter = models.CustomJSTickFormatter(
+			code="""return tick + " % " """
+		)
+		self.sector_exposure_chart.ygrid.grid_line_color = None
+		self.sector_exposure_chart.yaxis.major_label_text_color = "white"
+		self.sector_exposure_chart.xaxis.major_label_text_color = "white"
+		self.sector_exposure_chart.xaxis.major_label_orientation = 45 * (3.14159265 / 180)
+		self.sector_exposure_chart.add_tools(self.sector_exposure_hover_tool)
+
+		self._country_exposure_chart = plotting.figure(
+			title='Country Exposure',
+			width=sector_table_width,
+			height=sector_table_height,
+			background_fill_alpha=0.5,
+			x_range=models.Range1d(0, 1, bounds="auto"),
+			y_range=models.Range1d(-1, 1, bounds="auto"),
+		)
+		self.country_exposure_chart.title.text_color = 'white'
+		self.country_exposure_chart.yaxis[0].formatter = models.CustomJSTickFormatter(
+			code="""return tick + " % " """
+		)
+		self.country_exposure_chart.ygrid.grid_line_color = None
+		self.country_exposure_chart.yaxis.major_label_text_color = "white"
+		self.country_exposure_chart.xaxis.major_label_text_color = "white"
+		self.country_exposure_chart.xaxis.major_label_orientation = 45 * (3.14159265 / 180)
+		self.country_exposure_chart.add_tools(self.country_exposure_hover_tool)
+
+		self._instrument_exposure_chart = plotting.figure(
+			title='Real Instrument Exposure',
+			width=sector_table_width,
+			height=sector_table_height,
+			background_fill_alpha=0.5,
+			x_range=models.Range1d(0, 1, bounds="auto"),
+			y_range=models.Range1d(-1, 1, bounds="auto"),
+		)
+		self.instrument_exposure_chart.title.text_color = 'white'
+		self.instrument_exposure_chart.yaxis[0].formatter = models.CustomJSTickFormatter(
+			code="""return tick + " % " """
+		)
+		self.instrument_exposure_chart.ygrid.grid_line_color = None
+		self.instrument_exposure_chart.yaxis.major_label_text_color = "white"
+		self.instrument_exposure_chart.xaxis.major_label_text_color = "white"
+		self.instrument_exposure_chart.xaxis.major_label_orientation = 45 * (3.14159265 / 180)
+		self.instrument_exposure_chart.add_tools(self.instrument_exposure_hover_tool)
 
 		#Controllers
-		self._calculation_button = models.Button(label='Update')
+		self._positions_calculation_button = models.Button(label='Update insights')
+		self._plot_calculation_button = models.Button(label='Update plot')
 		self._instrument_selector = models.Select(title='Instrument', value=None)
 		self._granularity_selector = models.Select(title='Granularity', value=None)
 		self._open_orders_toggle = models.Toggle(label='Open Orders')
 		self._closed_positions_toggle = models.Toggle(label='Closed Pos.')
 		self._open_positions_toggle = models.Toggle(label='Open Pos.')
 
+		#Labels and separators
+		self._instrument_plot_controllers_header = models.Div(text='INSTRUMENT PLOT')
+		self._portfolio_insights_controllers_header = models.Div(text='PORTFOLIO INSIGHTS')
+		_widgets_column_segment_1_height = 300
+		_separator = models.Div(height=instrument_plot_height - _widgets_column_segment_1_height)
+
 		#Panel
-		_widgets_column = self.fit_column_content(
+		_widgets_column_segment_1 = self.fit_column_content(
 			column_width=300,
 			content=column(
-			row(
-			self.instrument_selector,
-			self.granularity_selector,
-			),
-			row(
-			self.open_positions_toggle,
-			self.closed_positions_toggle,
-			self.open_orders_toggle,
-			),
-			self.calculation_button,
+			row(self.instrument_plot_controllers_header),
+			row(self.instrument_selector, self.granularity_selector),
+			row(self.open_positions_toggle, self.closed_positions_toggle, self.open_orders_toggle),
+			row(self.plot_calculation_button),
+			height=_widgets_column_segment_1_height,
+			)
+		)
+		_widgets_column_segment_2 = self.fit_column_content(
+			column_width=300,
+			content=column(
+			self.portfolio_insights_controllers_header,
+			self.positions_calculation_button,
+			)
+		)
+		_plots_column = self.fit_column_content(
+			column_width=instrument_plot_width,
+			content=column(
+			row(self.instrument_plot),
+			row(self.instrument_exposure_chart, self.country_exposure_chart),
+			row(self.sector_exposure_chart),
 			)
 		)
 		self._layout = gridplot(
@@ -62,8 +140,12 @@ class PortfolioView(BaseView):
 			merge_tools=True,
 			toolbar_options=dict(logo=None),
 			children=[[
-			_widgets_column,
-			self.figure,
+			column(
+			_widgets_column_segment_1,
+			_separator,
+			_widgets_column_segment_2,
+			),
+			_plots_column,
 			]]
 		)
 		self._panel = models.TabPanel(
@@ -72,6 +154,27 @@ class PortfolioView(BaseView):
 		)
 
 		#Glyphs
+		self._instrument_exposure_vbar_glyph = models.VBar(
+			x='index',
+			top='real_exposure',
+			bottom='bottom',
+			width=0.9,
+			fill_color='#00eeff',
+		)
+		self._country_exposure_vbar_glyph = models.VBar(
+			x='index',
+			top='country_exposure',
+			bottom='bottom',
+			width=0.9,
+			fill_color='#00eeff',
+		)
+		self._sector_exposure_vbar_glyph = models.VBar(
+			x='index',
+			top='sector_exposure',
+			bottom='bottom',
+			width=0.9,
+			fill_color='#00eeff',
+		)
 		self._open_orders_opening_glyph = models.Segment(
 			x0='start_index',
 			x1='end_index',
@@ -168,6 +271,58 @@ class PortfolioView(BaseView):
 		)
 
 	@property
+	def instrument_exposure_hover_tool(self):
+		return self._instrument_exposure_hover_tool
+
+	@property
+	def sector_exposure_hover_tool(self):
+		return self._sector_exposure_hover_tool
+
+	@property
+	def country_exposure_hover_tool(self):
+		return self._country_exposure_hover_tool
+
+	@property
+	def positions_calculation_button(self):
+		return self._positions_calculation_button
+
+	@property
+	def country_exposure_vbar_glyph(self):
+		return self._country_exposure_vbar_glyph
+
+	@property
+	def country_exposure_chart(self):
+		return self._country_exposure_chart
+
+	@property
+	def instrument_exposure_vbar_glyph(self):
+		return self._instrument_exposure_vbar_glyph
+
+	@property
+	def instrument_exposure_chart(self):
+		return self._instrument_exposure_chart
+
+	@property
+	def sector_exposure_vbar_glyph(self):
+		return self._sector_exposure_vbar_glyph
+
+	@property
+	def sector_exposure_chart(self):
+		return self._sector_exposure_chart
+
+	@property
+	def portfolio_insights_controllers_header(self):
+		return self._portfolio_insights_controllers_header
+
+	@property
+	def instrument_plot_controllers_header(self):
+		return self._instrument_plot_controllers_header
+
+	@property
+	def separator(self):
+		return self._separator
+
+	@property
 	def panel(self):
 		return self._panel
 
@@ -204,8 +359,8 @@ class PortfolioView(BaseView):
 		return self._take_profit_hline_glyph
 
 	@property
-	def figure(self):
-		return self._figure
+	def instrument_plot(self):
+		return self._instrument_plot
 
 	@property
 	def open_positions_glyph(self):
@@ -236,8 +391,8 @@ class PortfolioView(BaseView):
 		return self._open_orders_opening_glyph
 
 	@property
-	def calculation_button(self):
-		return self._calculation_button
+	def plot_calculation_button(self):
+		return self._plot_calculation_button
 
 	@property
 	def instrument_selector(self):
@@ -275,6 +430,78 @@ class PortfolioModel(BaseModel):
 		self._open_orders_data_set = pandas.DataFrame()
 		self._open_orders_data_view = pandas.DataFrame()
 		self._open_orders_cds = plotting.ColumnDataSource(self._open_orders_data_view)
+
+		self._sector_exposure_data_set = pandas.DataFrame()
+		self._sector_exposure_data_view = pandas.DataFrame()
+		self._sector_exposure_cds = plotting.ColumnDataSource(self._sector_exposure_data_view)
+
+		self._country_exposure_data_set = pandas.DataFrame()
+		self._country_exposure_data_view = pandas.DataFrame()
+		self._country_exposure_cds = plotting.ColumnDataSource(self._country_exposure_data_view)
+
+		self._instrument_exposure_data_set = pandas.DataFrame()
+		self._instrument_exposure_data_view = pandas.DataFrame()
+		self._instrument_exposure_cds = plotting.ColumnDataSource(self._instrument_exposure_data_view)
+
+	@property
+	def instrument_exposure_cds(self) -> plotting.ColumnDataSource:
+		return self._instrument_exposure_cds
+
+	@property
+	def instrument_exposure_data_view(self) -> pandas.DataFrame:
+		return self._instrument_exposure_data_view
+
+	@instrument_exposure_data_view.setter
+	def instrument_exposure_data_view(self, df: pandas.DataFrame):
+		self._instrument_exposure_data_view = df
+
+	@property
+	def instrument_exposure_data_set(self) -> pandas.DataFrame:
+		return self._instrument_exposure_data_set
+
+	@instrument_exposure_data_set.setter
+	def instrument_exposure_data_set(self, df: pandas.DataFrame):
+		self._instrument_exposure_data_set = df
+
+	@property
+	def country_exposure_cds(self) -> plotting.ColumnDataSource:
+		return self._country_exposure_cds
+
+	@property
+	def country_exposure_data_view(self) -> pandas.DataFrame:
+		return self._country_exposure_data_view
+
+	@country_exposure_data_view.setter
+	def country_exposure_data_view(self, df: pandas.DataFrame):
+		self._country_exposure_data_view = df
+
+	@property
+	def country_exposure_data_set(self) -> pandas.DataFrame:
+		return self._country_exposure_data_set
+
+	@country_exposure_data_set.setter
+	def country_exposure_data_set(self, df: pandas.DataFrame):
+		self._country_exposure_data_set = df
+
+	@property
+	def sector_exposure_cds(self) -> plotting.ColumnDataSource:
+		return self._sector_exposure_cds
+
+	@property
+	def sector_exposure_data_view(self) -> pandas.DataFrame:
+		return self._sector_exposure_data_view
+
+	@sector_exposure_data_view.setter
+	def sector_exposure_data_view(self, df: pandas.DataFrame):
+		self._sector_exposure_data_view = df
+
+	@property
+	def sector_exposure_data_set(self) -> pandas.DataFrame:
+		return self._sector_exposure_data_set
+
+	@sector_exposure_data_set.setter
+	def sector_exposure_data_set(self, df: pandas.DataFrame):
+		self._sector_exposure_data_set = df
 
 	@property
 	def open_orders_data_set(self) -> pandas.DataFrame:
@@ -397,8 +624,10 @@ class Portfolio(PortfolioView, PortfolioModel, BaseController):
 	def __init__(self) -> None:
 		super().__init__(
 			logger_name=__name__,
-			chart_width=1280,
-			chart_height=720,
+			instrument_plot_width=1280,
+			instrument_plot_height=720,
+			sector_table_height=360,
+			sector_table_width=640,
 			panel_title='Portfolio',
 		)
 		self.instrument_selector.options = self.portfolio_overview_etoro_symbols()
@@ -406,18 +635,70 @@ class Portfolio(PortfolioView, PortfolioModel, BaseController):
 		self.granularity_selector.options = self.instrument_granularities_list()
 		self.granularity_selector.value = self.granularity_selector.options[0]
 
-		self.append_callback(model=self.calculation_button, function=self.update_figure)
-		self.append_callback(model=self.calculation_button, function=self.update_view_range, x_min=180, x_max=5)  # yapf: disable
-		self.append_callback(model=self.calculation_button, function=self.update_open_positions)
-		self.append_callback(model=self.calculation_button, function=self.update_closed_positions)
-		self.append_callback(model=self.calculation_button, function=self.update_open_orders)
+		self.append_callback(model=self.plot_calculation_button, function=self.update_instrument_plot)
+		self.append_callback(model=self.plot_calculation_button, function=self.update_view_range, x_min=180, x_max=5)  # yapf: disable
+		self.append_callback(model=self.plot_calculation_button, function=self.update_open_positions)
+		self.append_callback(model=self.plot_calculation_button, function=self.update_closed_positions)
+		self.append_callback(model=self.plot_calculation_button, function=self.update_open_orders)
 		self.append_callback(model=self.open_positions_toggle, function=self.update_open_positions)
 		self.append_callback(model=self.closed_positions_toggle, function=self.update_closed_positions)
 		self.append_callback(model=self.open_orders_toggle, function=self.update_open_orders)
-		self.append_callback(model=self.figure, function=self.update_view_range, event_type=events.MouseWheel)  # yapf: disable
+		self.append_callback(model=self.instrument_plot, function=self.update_view_range, event_type=events.MouseWheel)  # yapf: disable
+		self.append_callback(model=self.positions_calculation_button, function=self.update_insights_tables) # yapf: disable
 
 	@BaseController.log_call
-	def update_figure(self):
+	def update_insights_tables(self):
+		#Update model components
+		self.sector_exposure_data_set = self.fetch_sector_exposure_data()
+		self.sector_exposure_data_view = self.sector_exposure_data_set
+		self.sector_exposure_data_view['bottom'] = 0
+		self.sector_exposure_data_view['index'] = self.sector_exposure_data_view.reset_index().index
+		self.sector_exposure_cds.data.update(self.sector_exposure_data_view)
+
+		self.sector_exposure_chart.x_range.start = self.sector_exposure_data_view.index.min() - 0.5
+		self.sector_exposure_chart.x_range.end = self.sector_exposure_data_view.index.max() + 0.5
+		self.sector_exposure_chart.y_range.start = self.sector_exposure_data_view['sector_exposure'].min()
+		self.sector_exposure_chart.y_range.end = self.sector_exposure_data_view['sector_exposure'].max()
+
+		self.country_exposure_data_set = self.fetch_country_exposure_data()
+		self.country_exposure_data_view = self.country_exposure_data_set
+		self.country_exposure_data_view['bottom'] = 0
+		self.country_exposure_data_view['index'] = self.country_exposure_data_view.reset_index().index
+		self.country_exposure_cds.data.update(self.country_exposure_data_view)
+
+		self.country_exposure_chart.x_range.start = self.country_exposure_data_view.index.min() - 0.5
+		self.country_exposure_chart.x_range.end = self.country_exposure_data_view.index.max() + 0.5
+		self.country_exposure_chart.y_range.start = self.country_exposure_data_view['country_exposure'].min() # yapf: disable
+		self.country_exposure_chart.y_range.end = self.country_exposure_data_view['country_exposure'].max() # yapf: disable
+
+		self.instrument_exposure_data_set = self.fetch_real_exposure_by_instrument()
+		self.instrument_exposure_data_view = self.instrument_exposure_data_set
+		self.instrument_exposure_data_view['bottom'] = 0
+		self.instrument_exposure_data_view['index'] = self.instrument_exposure_data_view.reset_index().index  # yapf: disable
+		self.instrument_exposure_cds.data.update(self.instrument_exposure_data_view)
+		self.instrument_exposure_chart.x_range.start = self.instrument_exposure_data_view.index.min() - 0.5  # yapf: disable
+		self.instrument_exposure_chart.x_range.end = self.instrument_exposure_data_view.index.max() + 0.5  # yapf: disable
+		self.instrument_exposure_chart.y_range.start = self.instrument_exposure_data_view['real_exposure'].min() # yapf: disable
+		self.instrument_exposure_chart.y_range.end = self.instrument_exposure_data_view['real_exposure'].max() # yapf: disable
+
+		#Update view components
+		self.sector_exposure_chart.add_glyph(self.sector_exposure_cds, self.sector_exposure_vbar_glyph)
+		self.sector_exposure_chart.xaxis.major_label_overrides = self.sector_exposure_data_view['sector'].to_dict() # yapf: disable
+		self.sector_exposure_chart.xaxis.ticker = models.FixedTicker(ticks=self.sector_exposure_data_view['index'].tolist()) # yapf: disable
+		self.sector_exposure_hover_tool.tooltips = [('Sector', '@sector'),('Exposure', '@sector_exposure %')] # yapf: disable
+
+		self.country_exposure_chart.add_glyph(self.country_exposure_cds, self.country_exposure_vbar_glyph)
+		self.country_exposure_chart.xaxis.major_label_overrides = self.country_exposure_data_view['country'].to_dict()# yapf: disable
+		self.country_exposure_chart.xaxis.ticker = models.FixedTicker(ticks=self.country_exposure_data_view['index'].tolist())# yapf: disable
+		self.country_exposure_hover_tool.tooltips = [('Country', '@country'),('Exposure', '@country_exposure %')]# yapf: disable
+
+		self.instrument_exposure_chart.add_glyph(self.instrument_exposure_cds, self.instrument_exposure_vbar_glyph) # yapf: disable
+		self.instrument_exposure_chart.xaxis.major_label_overrides = self.instrument_exposure_data_view['etoro_name'].to_dict()# yapf: disable
+		self.instrument_exposure_chart.xaxis.ticker = models.FixedTicker(ticks=self.instrument_exposure_data_view['index'].tolist())# yapf: disable
+		self.instrument_exposure_hover_tool.tooltips = [('Instrument', '@etoro_name'),('Exposure', '@real_exposure %')]# yapf: disable
+
+	@BaseController.log_call
+	def update_instrument_plot(self):
 		#Read state
 		granularity = self.granularity_selector.value
 		instrument = self.common_symbol_lookup(self.instrument_selector.value)
@@ -427,11 +708,11 @@ class Portfolio(PortfolioView, PortfolioModel, BaseController):
 		self.instrument_cds.data.update(self.instrument_data)
 
 		#Update view components
-		if len(self.figure.select({'id': self.ohlc_line_glyph.id})) == 0:
-			self.figure.add_glyph(self.instrument_cds, self.ohlc_line_glyph)
-			self.figure.add_glyph(self.instrument_cds, self.ohlc_bar_glyph)
+		if len(self.instrument_plot.select({'id': self.ohlc_line_glyph.id})) == 0:
+			self.instrument_plot.add_glyph(self.instrument_cds, self.ohlc_line_glyph)
+			self.instrument_plot.add_glyph(self.instrument_cds, self.ohlc_bar_glyph)
 
-		self.figure.xaxis.major_label_overrides = self.instrument_data['datetime'].dt.strftime(self.instrument_granularities[granularity]).to_dict() # yapf: disable
+		self.instrument_plot.xaxis.major_label_overrides = self.instrument_data['datetime'].dt.strftime(self.instrument_granularities[granularity]).to_dict() # yapf: disable
 
 	@BaseController.log_call
 	def update_open_positions(self):
@@ -455,22 +736,22 @@ class Portfolio(PortfolioView, PortfolioModel, BaseController):
 			self.open_positions_cds.data.update(self.open_positions_data_view)
 
 			#Update view components
-			if len(self.figure.select({'id': self.open_positions_glyph.id})) == 0:
-				self.figure.add_glyph(self.open_positions_cds, self.open_positions_glyph)
-				self.figure.add_glyph(self.open_positions_cds, self.take_profit_hline_glyph)
-				self.figure.add_glyph(self.open_positions_cds, self.take_profit_vline_glyph)
-				self.figure.add_glyph(self.open_positions_cds, self.stop_loss_hline_glyph)
-				self.figure.add_glyph(self.open_positions_cds, self.stop_loss_vline_glyph)
+			if len(self.instrument_plot.select({'id': self.open_positions_glyph.id})) == 0:
+				self.instrument_plot.add_glyph(self.open_positions_cds, self.open_positions_glyph)
+				self.instrument_plot.add_glyph(self.open_positions_cds, self.take_profit_hline_glyph)
+				self.instrument_plot.add_glyph(self.open_positions_cds, self.take_profit_vline_glyph)
+				self.instrument_plot.add_glyph(self.open_positions_cds, self.stop_loss_hline_glyph)
+				self.instrument_plot.add_glyph(self.open_positions_cds, self.stop_loss_vline_glyph)
 
 			self.toggle_renderers_based_on_tag(
-				model=self.figure,
+				model=self.instrument_plot,
 				tags=['open_position_glyph'],
 				visible=True,
 			)
 		else:
 			#Update view components
 			self.toggle_renderers_based_on_tag(
-				model=self.figure,
+				model=self.instrument_plot,
 				tags=['open_position_glyph'],
 				visible=False,
 			)
@@ -513,18 +794,18 @@ class Portfolio(PortfolioView, PortfolioModel, BaseController):
 			self.closed_positions_cds.data.update(self.closed_positions_data_view)
 
 			#Update view components
-			if len(self.figure.select({'id': self.closed_position_closing_glyph.id})) == 0:
-				self.figure.add_glyph(self.closed_positions_cds, self.closed_position_closing_glyph)
-				self.figure.add_glyph(self.closed_positions_cds, self.closed_positions_opening_glyph)
-				self.figure.add_glyph(self.closed_positions_cds, self.closed_position_connector_glyph)
+			if len(self.instrument_plot.select({'id': self.closed_position_closing_glyph.id})) == 0:
+				self.instrument_plot.add_glyph(self.closed_positions_cds, self.closed_position_closing_glyph)
+				self.instrument_plot.add_glyph(self.closed_positions_cds, self.closed_positions_opening_glyph)
+				self.instrument_plot.add_glyph(self.closed_positions_cds, self.closed_position_connector_glyph)
 
 			self.toggle_renderers_based_on_tag(
-				model=self.figure, tags=['closed_position_glyph'], visible=True
+				model=self.instrument_plot, tags=['closed_position_glyph'], visible=True
 			)
 		else:
 			#Update view components
 			self.toggle_renderers_based_on_tag(
-				model=self.figure, tags=['closed_position_glyph'], visible=False
+				model=self.instrument_plot, tags=['closed_position_glyph'], visible=False
 			)
 
 	@BaseController.log_call
@@ -546,13 +827,17 @@ class Portfolio(PortfolioView, PortfolioModel, BaseController):
 			self.open_orders_cds.data.update(self.open_orders_data_view)
 
 			#Update view components
-			if len(self.figure.select({'id': self.open_orders_opening_glyph.id})) == 0:
-				self.figure.add_glyph(self.open_orders_cds, self.open_orders_opening_glyph)
+			if len(self.instrument_plot.select({'id': self.open_orders_opening_glyph.id})) == 0:
+				self.instrument_plot.add_glyph(self.open_orders_cds, self.open_orders_opening_glyph)
 
-			self.toggle_renderers_based_on_tag(model=self.figure, tags=['open_orders_glyph'], visible=True)
+			self.toggle_renderers_based_on_tag(
+				model=self.instrument_plot, tags=['open_orders_glyph'], visible=True
+			)
 		else:
 			#Update view components
-			self.toggle_renderers_based_on_tag(model=self.figure, tags=['open_orders_glyph'], visible=False)
+			self.toggle_renderers_based_on_tag(
+				model=self.instrument_plot, tags=['open_orders_glyph'], visible=False
+			)
 
 	def update_view_range(self, x_min: int = None, x_max: int = None):
 		_df = self.instrument_data
@@ -560,16 +845,16 @@ class Portfolio(PortfolioView, PortfolioModel, BaseController):
 		#X-axis
 		if x_min:
 			_x_range_min = _df.index.max() - x_min
-			self.figure.x_range.start = _x_range_min
+			self.instrument_plot.x_range.start = _x_range_min
 		else:
-			_x_range_min = self.figure.x_range.start
+			_x_range_min = self.instrument_plot.x_range.start
 		if x_max:
 			_x_range_max = _df.index.max() + x_max
-			self.figure.x_range.end = _x_range_max
+			self.instrument_plot.x_range.end = _x_range_max
 		else:
-			_x_range_max = self.figure.x_range.end
+			_x_range_max = self.instrument_plot.x_range.end
 
 		#Y-axis
 		_mask = (_df.index >= _x_range_min) & (_df.index <= _x_range_max)
-		self.figure.y_range.start = _df.loc[_mask]['low'].min()
-		self.figure.y_range.end = _df.loc[_mask]['high'].max()
+		self.instrument_plot.y_range.start = _df.loc[_mask]['low'].min()
+		self.instrument_plot.y_range.end = _df.loc[_mask]['high'].max()
