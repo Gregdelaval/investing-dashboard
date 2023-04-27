@@ -1,9 +1,10 @@
 from .base import BaseView, BaseController, BaseModel
-from bokeh import models, events, plotting
+from bokeh import models, events, plotting, palettes
 from bokeh.layouts import gridplot, column, row
 import pandas
 import numpy
 from typing import List, Dict
+from typing import Callable
 
 
 class PortfolioView(BaseView):
@@ -96,6 +97,7 @@ class PortfolioView(BaseView):
 
 		#Controllers
 		self._positions_calculation_button = models.Button(label='Update insights')
+		self._positions_scale_toggle = models.Toggle(label='Scale to used credit')
 		self._plot_calculation_button = models.Button(label='Update plot')
 		self._instrument_selector = models.Select(title='Instrument', value=None)
 		self._granularity_selector = models.Select(title='Granularity', value=None)
@@ -125,6 +127,7 @@ class PortfolioView(BaseView):
 			content=column(
 			self.portfolio_insights_controllers_header,
 			self.positions_calculation_button,
+			self.positions_scale_toggle,
 			)
 		)
 		_plots_column = self.fit_column_content(
@@ -155,23 +158,14 @@ class PortfolioView(BaseView):
 
 		#Glyphs
 		self._instrument_exposure_vbar_glyph = models.VBar(
-			x='index',
-			top='real_exposure',
-			bottom='bottom',
 			width=0.9,
 			fill_color='#00eeff',
 		)
 		self._country_exposure_vbar_glyph = models.VBar(
-			x='index',
-			top='country_exposure',
-			bottom='bottom',
 			width=0.9,
 			fill_color='#00eeff',
 		)
 		self._sector_exposure_vbar_glyph = models.VBar(
-			x='index',
-			top='sector_exposure',
-			bottom='bottom',
 			width=0.9,
 			fill_color='#00eeff',
 		)
@@ -271,116 +265,104 @@ class PortfolioView(BaseView):
 		)
 
 	@property
-	def instrument_exposure_hover_tool(self):
-		return self._instrument_exposure_hover_tool
-
-	@property
-	def sector_exposure_hover_tool(self):
-		return self._sector_exposure_hover_tool
+	def country_exposure_chart(self):
+		return self._country_exposure_chart
 
 	@property
 	def country_exposure_hover_tool(self):
 		return self._country_exposure_hover_tool
 
 	@property
-	def positions_calculation_button(self):
-		return self._positions_calculation_button
-
-	@property
 	def country_exposure_vbar_glyph(self):
 		return self._country_exposure_vbar_glyph
-
-	@property
-	def country_exposure_chart(self):
-		return self._country_exposure_chart
-
-	@property
-	def instrument_exposure_vbar_glyph(self):
-		return self._instrument_exposure_vbar_glyph
 
 	@property
 	def instrument_exposure_chart(self):
 		return self._instrument_exposure_chart
 
 	@property
-	def sector_exposure_vbar_glyph(self):
-		return self._sector_exposure_vbar_glyph
+	def instrument_exposure_hover_tool(self):
+		return self._instrument_exposure_hover_tool
+
+	@property
+	def instrument_exposure_vbar_glyph(self):
+		return self._instrument_exposure_vbar_glyph
 
 	@property
 	def sector_exposure_chart(self):
 		return self._sector_exposure_chart
 
 	@property
-	def portfolio_insights_controllers_header(self):
-		return self._portfolio_insights_controllers_header
+	def sector_exposure_hover_tool(self):
+		return self._sector_exposure_hover_tool
 
 	@property
-	def instrument_plot_controllers_header(self):
-		return self._instrument_plot_controllers_header
-
-	@property
-	def separator(self):
-		return self._separator
-
-	@property
-	def panel(self):
-		return self._panel
-
-	@property
-	def layout(self):
-		return self._layout
+	def sector_exposure_vbar_glyph(self):
+		return self._sector_exposure_vbar_glyph
 
 	@property
 	def closed_position_closing_glyph(self):
 		return self._closed_position_closing_glyph
 
 	@property
-	def closed_positions_opening_glyph(self):
-		return self._closed_positions_opening_glyph
-
-	@property
 	def closed_position_connector_glyph(self):
 		return self._closed_position_connector_glyph
 
 	@property
-	def stop_loss_vline_glyph(self):
-		return self._stop_loss_vline_glyph
-
-	@property
-	def stop_loss_hline_glyph(self):
-		return self._stop_loss_hline_glyph
-
-	@property
-	def take_profit_vline_glyph(self):
-		return self._take_profit_vline_glyph
-
-	@property
-	def take_profit_hline_glyph(self):
-		return self._take_profit_hline_glyph
+	def closed_positions_opening_glyph(self):
+		return self._closed_positions_opening_glyph
 
 	@property
 	def instrument_plot(self):
 		return self._instrument_plot
 
 	@property
-	def open_positions_glyph(self):
-		return self._open_positions_glyph
+	def ohlc_bar_glyph(self):
+		return self._ohlc_bar_glyph
 
 	@property
 	def ohlc_line_glyph(self):
 		return self._ohlc_line_glyph
 
 	@property
-	def ohlc_bar_glyph(self):
-		return self._ohlc_bar_glyph
+	def open_positions_glyph(self):
+		return self._open_positions_glyph
 
 	@property
-	def open_positions_toggle(self):
-		return self._open_positions_toggle
+	def stop_loss_hline_glyph(self):
+		return self._stop_loss_hline_glyph
+
+	@property
+	def stop_loss_vline_glyph(self):
+		return self._stop_loss_vline_glyph
+
+	@property
+	def take_profit_hline_glyph(self):
+		return self._take_profit_hline_glyph
+
+	@property
+	def take_profit_vline_glyph(self):
+		return self._take_profit_vline_glyph
 
 	@property
 	def closed_positions_toggle(self):
 		return self._closed_positions_toggle
+
+	@property
+	def granularity_selector(self):
+		return self._granularity_selector
+
+	@property
+	def instrument_plot_controllers_header(self):
+		return self._instrument_plot_controllers_header
+
+	@property
+	def instrument_selector(self):
+		return self._instrument_selector
+
+	@property
+	def layout(self):
+		return self._layout
 
 	@property
 	def open_orders_toggle(self):
@@ -391,16 +373,32 @@ class PortfolioView(BaseView):
 		return self._open_orders_opening_glyph
 
 	@property
+	def open_positions_toggle(self):
+		return self._open_positions_toggle
+
+	@property
+	def panel(self):
+		return self._panel
+
+	@property
 	def plot_calculation_button(self):
 		return self._plot_calculation_button
 
 	@property
-	def instrument_selector(self):
-		return self._instrument_selector
+	def portfolio_insights_controllers_header(self):
+		return self._portfolio_insights_controllers_header
 
 	@property
-	def granularity_selector(self):
-		return self._granularity_selector
+	def positions_calculation_button(self):
+		return self._positions_calculation_button
+
+	@property
+	def positions_scale_toggle(self):
+		return self._positions_scale_toggle
+
+	@property
+	def separator(self):
+		return self._separator
 
 
 class PortfolioModel(BaseModel):
@@ -630,72 +628,94 @@ class Portfolio(PortfolioView, PortfolioModel, BaseController):
 			sector_table_width=640,
 			panel_title='Portfolio',
 		)
+
 		self.instrument_selector.options = self.portfolio_overview_etoro_symbols()
 		self.instrument_selector.value = self.instrument_selector.options[0]
 		self.granularity_selector.options = self.instrument_granularities_list()
 		self.granularity_selector.value = self.granularity_selector.options[0]
 
 		self.append_callback(model=self.plot_calculation_button, function=self.update_instrument_plot)
-		self.append_callback(model=self.plot_calculation_button, function=self.update_view_range, x_min=180, x_max=5)  # yapf: disable
+		self.append_callback(model=self.plot_calculation_button, function=self.update_view_range, x_min=180, x_max=5) # Yapf:disable
 		self.append_callback(model=self.plot_calculation_button, function=self.update_open_positions)
 		self.append_callback(model=self.plot_calculation_button, function=self.update_closed_positions)
 		self.append_callback(model=self.plot_calculation_button, function=self.update_open_orders)
 		self.append_callback(model=self.open_positions_toggle, function=self.update_open_positions)
 		self.append_callback(model=self.closed_positions_toggle, function=self.update_closed_positions)
 		self.append_callback(model=self.open_orders_toggle, function=self.update_open_orders)
-		self.append_callback(model=self.instrument_plot, function=self.update_view_range, event_type=events.MouseWheel)  # yapf: disable
-		self.append_callback(model=self.positions_calculation_button, function=self.update_insights_tables) # yapf: disable
+		self.append_callback(model=self.instrument_plot, function=self.update_view_range, event_type=events.MouseWheel) # Yapf:disable
+		self.append_callback(model=self.positions_calculation_button, function=self.update_insights_tables) # Yapf:disable
+		self.append_callback(model=self.positions_scale_toggle, function=self.update_insights_tables) # Yapf:disable
+
 
 	@BaseController.log_call
 	def update_insights_tables(self):
-		#Update model components
-		self.sector_exposure_data_set = self.fetch_sector_exposure_data()
-		self.sector_exposure_data_view = self.sector_exposure_data_set
-		self.sector_exposure_data_view['bottom'] = 0
-		self.sector_exposure_data_view['index'] = self.sector_exposure_data_view.reset_index().index
-		self.sector_exposure_cds.data.update(self.sector_exposure_data_view)
 
-		self.sector_exposure_chart.x_range.start = self.sector_exposure_data_view.index.min() - 0.5
-		self.sector_exposure_chart.x_range.end = self.sector_exposure_data_view.index.max() + 0.5
-		self.sector_exposure_chart.y_range.start = self.sector_exposure_data_view['sector_exposure'].min()
-		self.sector_exposure_chart.y_range.end = self.sector_exposure_data_view['sector_exposure'].max()
+		def update_table(aggregate: str):
+			#Define variables
+			fetch_data_func = getattr(self, f'fetch_{aggregate}_exposure_data')
+			data_set_attr = f'{aggregate}_exposure_data_set'
+			data_view_attr = f'{aggregate}_exposure_data_view'
+			cds_attr = f'{aggregate}_exposure_cds'
+			chart_attr = f'{aggregate}_exposure_chart'
+			glyph_attr = f'{aggregate}_exposure_vbar_glyph'
+			hover_tool_attr = f'{aggregate}_exposure_hover_tool'
 
-		self.country_exposure_data_set = self.fetch_country_exposure_data()
-		self.country_exposure_data_view = self.country_exposure_data_set
-		self.country_exposure_data_view['bottom'] = 0
-		self.country_exposure_data_view['index'] = self.country_exposure_data_view.reset_index().index
-		self.country_exposure_cds.data.update(self.country_exposure_data_view)
+			if self.positions_scale_toggle.active:
+				column_name = f'scaled_{aggregate}_exposure'
+			else:
+				column_name = f'{aggregate}_exposure'
 
-		self.country_exposure_chart.x_range.start = self.country_exposure_data_view.index.min() - 0.5
-		self.country_exposure_chart.x_range.end = self.country_exposure_data_view.index.max() + 0.5
-		self.country_exposure_chart.y_range.start = self.country_exposure_data_view['country_exposure'].min() # yapf: disable
-		self.country_exposure_chart.y_range.end = self.country_exposure_data_view['country_exposure'].max() # yapf: disable
+			# Set data
+			data_set: pandas.DataFrame = getattr(self, data_set_attr)
+			if data_set.empty:
+				data_set = fetch_data_func()
 
-		self.instrument_exposure_data_set = self.fetch_real_exposure_by_instrument()
-		self.instrument_exposure_data_view = self.instrument_exposure_data_set
-		self.instrument_exposure_data_view['bottom'] = 0
-		self.instrument_exposure_data_view['index'] = self.instrument_exposure_data_view.reset_index().index  # yapf: disable
-		self.instrument_exposure_cds.data.update(self.instrument_exposure_data_view)
-		self.instrument_exposure_chart.x_range.start = self.instrument_exposure_data_view.index.min() - 0.5  # yapf: disable
-		self.instrument_exposure_chart.x_range.end = self.instrument_exposure_data_view.index.max() + 0.5  # yapf: disable
-		self.instrument_exposure_chart.y_range.start = self.instrument_exposure_data_view['real_exposure'].min() # yapf: disable
-		self.instrument_exposure_chart.y_range.end = self.instrument_exposure_data_view['real_exposure'].max() # yapf: disable
+			data_view: pandas.DataFrame = getattr(self, data_view_attr)
+			data_view = data_set
+			data_view.sort_values(by=column_name, ascending=False, inplace=True, ignore_index=True)
+			data_view['index'] = data_view.reset_index().index
 
-		#Update view components
-		self.sector_exposure_chart.add_glyph(self.sector_exposure_cds, self.sector_exposure_vbar_glyph)
-		self.sector_exposure_chart.xaxis.major_label_overrides = self.sector_exposure_data_view['sector'].to_dict() # yapf: disable
-		self.sector_exposure_chart.xaxis.ticker = models.FixedTicker(ticks=self.sector_exposure_data_view['index'].tolist()) # yapf: disable
-		self.sector_exposure_hover_tool.tooltips = [('Sector', '@sector'),('Exposure', '@sector_exposure %')] # yapf: disable
+			# Update data source
+			getattr(self, cds_attr).data.update(data_view)
 
-		self.country_exposure_chart.add_glyph(self.country_exposure_cds, self.country_exposure_vbar_glyph)
-		self.country_exposure_chart.xaxis.major_label_overrides = self.country_exposure_data_view['country'].to_dict()# yapf: disable
-		self.country_exposure_chart.xaxis.ticker = models.FixedTicker(ticks=self.country_exposure_data_view['index'].tolist())# yapf: disable
-		self.country_exposure_hover_tool.tooltips = [('Country', '@country'),('Exposure', '@country_exposure %')]# yapf: disable
+			# Update chart range
+			chart: plotting.Figure = getattr(self, chart_attr)
+			chart.x_range.start = data_view.index.min() - 0.5
+			chart.x_range.end = data_view.index.max() + 0.5
+			chart.y_range.start = data_view[column_name].min()
+			chart.y_range.end = data_view[column_name].max()
 
-		self.instrument_exposure_chart.add_glyph(self.instrument_exposure_cds, self.instrument_exposure_vbar_glyph) # yapf: disable
-		self.instrument_exposure_chart.xaxis.major_label_overrides = self.instrument_exposure_data_view['etoro_name'].to_dict()# yapf: disable
-		self.instrument_exposure_chart.xaxis.ticker = models.FixedTicker(ticks=self.instrument_exposure_data_view['index'].tolist())# yapf: disable
-		self.instrument_exposure_hover_tool.tooltips = [('Instrument', '@etoro_name'),('Exposure', '@real_exposure %')]# yapf: disable
+			# Update chart glyphs and axis
+			color_mapper = models.CategoricalColorMapper(
+				factors=data_view[aggregate].unique().tolist(),
+				palette=numpy.array(palettes.Plasma256)\
+  [numpy.linspace(0, 255, len(data_view[aggregate].unique()),dtype=int)].tolist(),
+			)
+
+			vbar_glyph = getattr(self, glyph_attr)
+			vbar_glyph.top = column_name
+			vbar_glyph.bottom = 0
+			vbar_glyph.x = 'index'
+			vbar_glyph.fill_color = {
+				'field': aggregate,
+				'transform': color_mapper,
+			}
+
+			if len(chart.select({'id': vbar_glyph.id})) == 0:
+				chart.add_glyph(getattr(self, cds_attr), vbar_glyph)
+			chart.xaxis.major_label_overrides = data_view[aggregate].to_dict()
+			chart.xaxis.ticker = models.FixedTicker(ticks=data_view['index'].tolist())
+
+			# Update hover tooltips
+			getattr(self, hover_tool_attr).tooltips = [
+				(aggregate, f'@{aggregate}'),
+				('Exposure', f'@{column_name} %'),
+			]
+
+		# Update model components
+		update_table(aggregate='sector')
+		update_table(aggregate='instrument')
+		update_table(aggregate='country')
 
 	@BaseController.log_call
 	def update_instrument_plot(self):
@@ -712,7 +732,9 @@ class Portfolio(PortfolioView, PortfolioModel, BaseController):
 			self.instrument_plot.add_glyph(self.instrument_cds, self.ohlc_line_glyph)
 			self.instrument_plot.add_glyph(self.instrument_cds, self.ohlc_bar_glyph)
 
-		self.instrument_plot.xaxis.major_label_overrides = self.instrument_data['datetime'].dt.strftime(self.instrument_granularities[granularity]).to_dict() # yapf: disable
+		self.instrument_plot.xaxis.major_label_overrides = self.instrument_data['datetime'].dt.strftime(
+			self.instrument_granularities[granularity]
+		).to_dict()
 
 	@BaseController.log_call
 	def update_open_positions(self):
@@ -840,6 +862,7 @@ class Portfolio(PortfolioView, PortfolioModel, BaseController):
 			)
 
 	def update_view_range(self, x_min: int = None, x_max: int = None):
+
 		_df = self.instrument_data
 
 		#X-axis

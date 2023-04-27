@@ -298,11 +298,10 @@ class BaseModel(Base):
 		df = self.query(sql_query=sql_query)
 		return df
 
-	def fetch_real_exposure_by_instrument(self):
+	def fetch_instrument_exposure_data(self):
 		sql_query = r'''
 		WITH labeled_positions AS (
 			SELECT mapping.`symbol_full` as etoro_name,
-				mapping.`instrument_type_id`,
 				symbols.`common_name`,
 				etoro_positions.`amount`,
 				etoro_positions.`leverage`,
@@ -312,6 +311,13 @@ class BaseModel(Base):
 			ON etoro_positions.`instrument_id` = mapping.`instrument_id`
 			JOIN `dl_supplied_tables`.`symbols_mapping` AS symbols
 			ON mapping.`symbol_full` = symbols.`etoro_name`
+			UNION ALL
+			SELECT parent_username as etoro_name,
+				parent_username as common_name,
+				invested as amount,
+				1 as leverage,
+				1 as is_buy
+			FROM `dl_portfolio`.`etoro_aggregated_mirrors`
 		), aggregated_exposure AS (
 			SELECT etoro_name, common_name,
 				SUM(CASE
@@ -320,9 +326,17 @@ class BaseModel(Base):
 				END) AS real_exposure
 			FROM labeled_positions
 			GROUP BY etoro_name, common_name
+		), available_credit AS (
+			SELECT realized_credit
+			FROM `dl_portfolio`.`etoro_credit`
+		), scaled_aggregated_exposure AS (
+			SELECT ae.etoro_name as instrument,
+			ae.real_exposure as instrument_exposure,
+			ae.real_exposure * (1-(ac.realized_credit / 100)) as scaled_instrument_exposure
+			FROM aggregated_exposure ae, available_credit ac
 		)
-		SELECT etoro_name, common_name, real_exposure
-		FROM aggregated_exposure
+		SELECT *
+		FROM scaled_aggregated_exposure
 		'''
 		df = self.query(sql_query=sql_query)
 		return df
@@ -331,8 +345,8 @@ class BaseModel(Base):
 		sql_query = r'''
 		WITH labeled_positions AS (
 			SELECT mapping.`symbol_full` as etoro_name,
-				mapping.`instrument_type_id`,
 				symbols.`common_name`,
+				mapping.`instrument_type_id`,
 				etoro_positions.`amount`,
 				etoro_positions.`leverage`,
 				etoro_positions.`is_buy`
@@ -341,6 +355,14 @@ class BaseModel(Base):
 			ON etoro_positions.`instrument_id` = mapping.`instrument_id`
 			JOIN `dl_supplied_tables`.`symbols_mapping` AS symbols
 			ON mapping.`symbol_full` = symbols.`etoro_name`
+			UNION ALL
+			SELECT parent_username as etoro_name,
+				parent_username as common_name,
+				99 as instrument_type_id,
+				invested as amount,
+				1 as leverage,
+				1 as is_buy
+			FROM `dl_portfolio`.`etoro_aggregated_mirrors`
 		), aggregated_exposure AS (
 			SELECT etoro_name, common_name, instrument_type_id,
 				SUM(CASE
@@ -357,8 +379,16 @@ class BaseModel(Base):
 			LEFT JOIN `dl_index_information`.`consolidated_sector_weights` AS sector_weights
 			ON aggregated_exposure.`common_name` = sector_weights.`common_index_name`
 			GROUP BY sector
+		), available_credit AS (
+			SELECT realized_credit
+			FROM `dl_portfolio`.`etoro_credit`
+		), scaled_aggregated_sector_exposure AS (
+			SELECT ase.sector,
+				ase.sector_exposure,
+				ase.sector_exposure * (1-(ac.realized_credit / 100)) as scaled_sector_exposure
+			FROM aggregated_sector_exposure ase, available_credit ac
 		)
-		select * from aggregated_sector_exposure
+		select * from scaled_aggregated_sector_exposure
 		'''
 		df = self.query(sql_query=sql_query)
 		return df
@@ -366,35 +396,51 @@ class BaseModel(Base):
 	def fetch_country_exposure_data(self):
 		sql_query = r'''
 		WITH labeled_positions AS (
-			SELECT mapping.`symbol_full` as etoro_name,
-				mapping.`instrument_type_id`,
-				symbols.`common_name`,
-				etoro_positions.`amount`,
-				etoro_positions.`leverage`,
-				etoro_positions.`is_buy`
-			FROM `dl_portfolio`.`etoro_positions` AS etoro_positions
-			JOIN `dl_portfolio`.`etoro_symbols_mapping` AS mapping
-			ON etoro_positions.`instrument_id` = mapping.`instrument_id`
-			JOIN `dl_supplied_tables`.`symbols_mapping` AS symbols
-			ON mapping.`symbol_full` = symbols.`etoro_name`
+		SELECT mapping.`symbol_full` as etoro_name,
+			symbols.`common_name`,
+			mapping.`instrument_type_id`,
+			etoro_positions.`amount`,
+			etoro_positions.`leverage`,
+			etoro_positions.`is_buy`
+		FROM `dl_portfolio`.`etoro_positions` AS etoro_positions
+		JOIN `dl_portfolio`.`etoro_symbols_mapping` AS mapping
+		ON etoro_positions.`instrument_id` = mapping.`instrument_id`
+		JOIN `dl_supplied_tables`.`symbols_mapping` AS symbols
+		ON mapping.`symbol_full` = symbols.`etoro_name`
+		UNION ALL
+		SELECT parent_username as etoro_name,
+			parent_username as common_name,
+			99 as instrument_type_id,
+			invested as amount,
+			1 as leverage,
+			1 as is_buy
+		FROM `dl_portfolio`.`etoro_aggregated_mirrors`
 		), aggregated_exposure AS (
-			SELECT etoro_name, common_name, instrument_type_id,
-				SUM(CASE
-					WHEN is_buy = 0 THEN -amount * leverage
-					ELSE amount * leverage
-				END) AS real_exposure
-			FROM labeled_positions
-			GROUP BY etoro_name, common_name, instrument_type_id
+		SELECT etoro_name, common_name, instrument_type_id,
+			SUM(CASE
+				WHEN is_buy = 0 THEN -amount * leverage
+				ELSE amount * leverage
+			END) AS real_exposure
+		FROM labeled_positions
+		GROUP BY etoro_name, common_name, instrument_type_id
 		), aggregated_country_exposure AS (
-			SELECT
-				COALESCE(country_weights.country, "Unknown") as country,
-				SUM(COALESCE(country_weights.weight_percentage / 100, 1) * aggregated_exposure.real_exposure) as country_exposure
-			FROM aggregated_exposure
+		SELECT
+			COALESCE(country_weights.country, "Unknown") as country,
+			SUM(COALESCE(country_weights.weight_percentage / 100, 1) * aggregated_exposure.real_exposure) as country_exposure
+		FROM aggregated_exposure
 			LEFT JOIN `dl_index_information`.`consolidated_country_weights` AS country_weights
 			ON aggregated_exposure.`common_name` = country_weights.`common_index_name`
-			GROUP BY country
+		GROUP BY country
+		), available_credit AS (
+			SELECT realized_credit
+			FROM `dl_portfolio`.`etoro_credit`
+		), scaled_aggregated_country_exposure AS (
+			SELECT ace.country,
+				ace.country_exposure,
+				ace.country_exposure * (1-(ac.realized_credit / 100)) as scaled_country_exposure
+			FROM aggregated_country_exposure ace, available_credit ac
 		)
-		select * from aggregated_country_exposure
+		select * from scaled_aggregated_country_exposure
 		'''
 		df = self.query(sql_query=sql_query)
 		return df
@@ -493,7 +539,8 @@ class BaseView(Base):
 			if isinstance(_row, models.Row):
 				_row_children_width = column_width / len(_row.children) - len(_row.children) * 2
 				for _row_child in _row.children:
-					_row_child.width = int(_row_children_width)
+					if _row_child.width == None:
+						_row_child.width = int(_row_children_width)
 			else:
 				_row.width = column_width
 
